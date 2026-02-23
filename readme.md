@@ -63,8 +63,19 @@ npm install
 # 3. Configurer le .env (Supabase URL/Key, Stripe Key)
 cp .env.example .env
 
-# 4. Lancer le projet
+# 4. Lancer le projet en développement
 npm run dev
 
+# 5. Build pour la production
+npm run build
 ```
+
+### Commandes disponibles
+
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Lance le serveur de développement |
+| `npm run build` | Compile l'application pour la production |
+| `npm run generate` | Génère une version statique du site |
+| `npm run preview` | Prévisualise le build de production |
 

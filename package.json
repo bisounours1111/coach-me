@@ -1,5 +1,5 @@
 {
-  "name": "mon-projet-nuxt",
+  "name": "coach-me",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,13 +10,9 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.4.0",
-    "@nuxtjs/supabase": "^2.0.4",
+    "@nuxt/ui": "^4.5.0",
     "nuxt": "^4.3.1",
     "vue": "^3.5.28",
     "vue-router": "^4.6.4"
-  },
-  "devDependencies": {
-    "@nuxtjs/tailwindcss": "^6.14.0"
   }
 }

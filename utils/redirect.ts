@@ -7,6 +7,11 @@ export const redirectByRole = async (router: Router, role: UserRole | null | und
     return;
   }
 
+  if (role === "maintainer") {
+    await router.push("/dashboard/admin");
+    return;
+  }
+
   if (role === "coach") {
     await router.push("/dashboard/coach");
     return;

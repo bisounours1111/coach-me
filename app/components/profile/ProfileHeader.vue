@@ -6,6 +6,28 @@ const props = defineProps<{
   isOwnProfile?: boolean;
 }>();
 
+const user = useSupabaseUser();
+const client = useSupabaseClient();
+const sessionUser = ref<any>(null);
+
+onMounted(async () => {
+  const { data } = await client.auth.getUser();
+  if (data?.user) {
+    sessionUser.value = data.user;
+  }
+});
+
+const isOwnProfileComputed = computed(() => {
+  if (props.isOwnProfile) return true;
+  const u = user.value || sessionUser.value;
+  const currentUserId = u?.sub;
+  const profileId = props.profile?.id;
+  if (!currentUserId || !profileId) return false;
+  return (
+    String(currentUserId).toLowerCase() === String(profileId).toLowerCase()
+  );
+});
+
 const socialConfig: Record<
   string,
   { label: string; icon: string; color: string }
@@ -46,16 +68,10 @@ const activeSocials = computed(() =>
 const coachGamesCount = computed(
   () => props.profile.games.filter((g) => g.isCoach).length,
 );
-
-onMounted(() => {
-  console.log("[ProfileHeader] isOwnProfile:", props.isOwnProfile);
-  console.log("[ProfileHeader] profile.id:", props.profile.id);
-});
 </script>
 
 <template>
   <header class="relative overflow-hidden">
-    <!-- Ambient glows -->
     <div
       class="pointer-events-none absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-teal-500/8 blur-3xl"
     />
@@ -67,24 +83,17 @@ onMounted(() => {
       <div
         class="relative overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-sm"
       >
-        <!-- Inner gradient -->
         <div
           class="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500/[0.04] via-transparent to-indigo-500/[0.04]"
         />
-        <!-- Corner accent -->
         <div
           class="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/10 blur-3xl"
         />
 
-        <!-- ─── Layout principal ─── -->
         <div class="relative flex flex-col md:flex-row">
-          <!-- ═══════════════════════════════════
-               COLONNE GAUCHE — Avatar + Nom + Bio
-               ═══════════════════════════════════ -->
           <div
             class="flex flex-col items-center gap-5 border-b border-white/8 p-6 text-center md:w-72 md:min-w-[18rem] md:items-start md:border-b-0 md:border-r md:p-8 md:text-left lg:w-80 lg:min-w-[20rem]"
           >
-            <!-- Avatar -->
             <div class="relative">
               <div
                 class="h-28 w-28 overflow-hidden rounded-full ring-2 ring-teal-500/40 ring-offset-2 ring-offset-[#0b0f19] md:h-32 md:w-32"
@@ -102,14 +111,12 @@ onMounted(() => {
                   {{ profile.fullName.charAt(0).toUpperCase() }}
                 </div>
               </div>
-              <!-- Online dot -->
               <div
                 v-if="isCoach"
                 class="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full border-2 border-[#0b0f19] bg-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.9)]"
               />
             </div>
 
-            <!-- Nom + badge -->
             <div class="space-y-2">
               <h1
                 class="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-2xl font-black text-transparent leading-tight"
@@ -132,12 +139,10 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Séparateur -->
             <div
               class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
             />
 
-            <!-- Bio -->
             <div class="flex-1">
               <p
                 v-if="profile.bio"
@@ -151,11 +156,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- ═══════════════════════════════════
-               COLONNE DROITE — Stats + Socials + CTA
-               ═══════════════════════════════════ -->
           <div class="flex flex-1 flex-col justify-between gap-6 p-6 md:p-8">
-            <!-- Stats (coach) -->
             <div v-if="isCoach" class="space-y-4">
               <p
                 class="text-xs font-bold uppercase tracking-widest text-slate-600"
@@ -188,7 +189,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Info joueur non-coach -->
             <div v-else class="space-y-2">
               <p
                 class="text-xs font-bold uppercase tracking-widest text-slate-600"
@@ -203,16 +203,17 @@ onMounted(() => {
               </p>
             </div>
 
-            <!-- Socials -->
-            <div v-if="activeSocials.length || isOwnProfile" class="space-y-3">
+            <div class="space-y-3">
               <div class="flex items-center justify-between gap-4">
                 <p
+                  v-if="activeSocials.length"
                   class="text-xs font-bold uppercase tracking-widest text-slate-600"
                 >
-                  {{ activeSocials.length ? 'Retrouve-moi sur' : '' }}
+                  Retrouve-moi sur
                 </p>
+                <div v-else />
                 <NuxtLink
-                  v-if="isOwnProfile"
+                  v-if="isOwnProfileComputed"
                   to="/profile/edit"
                   class="inline-flex items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-bold text-teal-400 transition-all hover:border-teal-500/50 hover:bg-teal-500/20"
                 >
@@ -243,7 +244,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- CTA -->
             <div v-if="isCoach" class="mt-auto pt-2">
               <button
                 class="group relative overflow-hidden rounded-xl bg-gradient-to-r from-teal-600 to-teal-500 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-900/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/20 active:scale-95"

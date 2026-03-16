@@ -1,19 +1,30 @@
 <script setup lang="ts">
 const route = useRoute();
 const user = useSupabaseUser();
+const client = useSupabaseClient();
 const { getPublicProfile } = usePublicProfile();
 
 type ProfileData = Awaited<ReturnType<typeof getPublicProfile>>;
 type CoachingOfferList = NonNullable<ProfileData>["offersByRoleId"][string];
 
+const authUserId = ref<string | null>(null);
+
+// Récupération robuste de l'ID utilisateur connecté
+onMounted(async () => {
+  if (user.value) {
+    authUserId.value = user.value.id;
+  } else {
+    const { data } = await client.auth.getUser();
+    authUserId.value = data.user?.id ?? null;
+  }
+});
+
 const isOwnProfile = computed(() => {
-  const match = user.value?.id === route.params.id;
-  console.log("[ProfilePage] Checking isOwnProfile:", {
-    userId: user.value?.id,
-    routeId: route.params.id,
-    match
-  });
-  return match;
+  const currentId = user.value?.id || authUserId.value;
+  const targetId = profile.value?.id;
+  
+  if (!currentId || !targetId) return false;
+  return String(currentId).toLowerCase() === String(targetId).toLowerCase();
 });
 
 const {

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
-    <div class="mx-auto w-full max-w-4xl">
-      <header class="mb-8 space-y-1">
+    <div class="mx-auto w-full max-w-4xl space-y-6">
+      <header class="space-y-1">
         <p
           class="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-indigo-400"
         >
@@ -13,24 +13,9 @@
         </p>
       </header>
 
-      <div class="mb-6 flex flex-wrap gap-2">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          :class="[
-            'rounded-full px-3 py-1 text-xs font-medium transition',
-            activeTab === tab.key
-              ? 'bg-indigo-500 text-white'
-              : 'bg-slate-800/70 text-slate-400 hover:bg-slate-700/70 hover:text-slate-200',
-          ]"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-          <span v-if="tab.count > 0" class="ml-1 opacity-60"
-            >({{ tab.count }})</span
-          >
-        </button>
-      </div>
+      <SessionStats v-if="!loading && !error" :sessions="sessions" />
+
+      <SessionFilters v-model="activeTab" :sessions="sessions" />
 
       <div v-if="loading" class="text-sm text-slate-400">
         Chargement de tes sessions…
@@ -106,32 +91,6 @@ const filteredSessions = computed<SessionListItem[]>(() => {
       return sessions.value;
   }
 });
-
-const tabs = computed(() => [
-  { key: "all" as TabKey, label: "Toutes", count: sessions.value.length },
-  {
-    key: "upcoming" as TabKey,
-    label: "À venir",
-    count: sessions.value.filter((s) =>
-      ["upcoming", "paid"].includes(s.status),
-    ).length,
-  },
-  {
-    key: "pending" as TabKey,
-    label: "En attente",
-    count: sessions.value.filter((s) => s.status === "pending").length,
-  },
-  {
-    key: "done" as TabKey,
-    label: "Terminées",
-    count: sessions.value.filter((s) => s.status === "done").length,
-  },
-  {
-    key: "canceled" as TabKey,
-    label: "Annulées",
-    count: sessions.value.filter((s) => s.status === "canceled").length,
-  },
-]);
 
 onMounted(fetchAsStudent);
 </script>

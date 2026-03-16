@@ -27,14 +27,7 @@
           </p>
         </div>
       </div>
-      <span
-        :class="[
-          'shrink-0 rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold',
-          statusClass,
-        ]"
-      >
-        {{ statusLabel }}
-      </span>
+      <SessionStatusBadge :status="session.status" />
     </header>
 
     <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-300">
@@ -71,15 +64,11 @@
 
 <script setup lang="ts">
 import type { SessionListItem } from "~/types/session";
-import { SESSION_STATUS_LABEL, SESSION_STATUS_CLASS } from "~/types/session";
 
 const props = defineProps<{
   session: SessionListItem;
   role: "student" | "coach";
 }>();
-
-const statusLabel = computed(() => SESSION_STATUS_LABEL[props.session.status]);
-const statusClass = computed(() => SESSION_STATUS_CLASS[props.session.status]);
 
 const formattedDate = computed(() => {
   const date = new Date(props.session.startAt);

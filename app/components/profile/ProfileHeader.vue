@@ -1,7 +1,6 @@
 <script setup lang="ts">
 const props = defineProps<{
   profile: PublicProfileView;
-  isCoach: boolean;
   minRate: number | null;
   isOwnProfile?: boolean;
 }>();
@@ -143,7 +142,7 @@ const copyProfileLink = () => {
 
             <!-- Status Badge -->
             <div
-              v-if="isCoach"
+              v-if="coachGamesCount > 0"
               class="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#050812] bg-teal-400 shadow-[0_0_20px_rgba(20,184,166,0.6)]"
             >
               <UIcon
@@ -257,17 +256,6 @@ const copyProfileLink = () => {
           <!-- CTAs -->
           <div class="mt-12 flex flex-wrap items-center justify-between gap-6">
             <div class="flex gap-4">
-              <button
-                v-if="isCoach && !isOwnProfileComputed"
-                class="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-teal-500 px-10 py-4 text-sm font-black text-slate-950 transition-all hover:scale-105 hover:bg-teal-400 active:scale-95 shadow-xl shadow-teal-900/20"
-              >
-                <UIcon name="i-heroicons-calendar-days" class="h-5 w-5" />
-                RÉSERVER UN COACHING
-                <div
-                  class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-500 group-hover:translate-x-full"
-                />
-              </button>
-
               <button
                 v-if="!isOwnProfileComputed"
                 class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"

@@ -1,68 +1,3 @@
-<template>
-  <div class="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
-    <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header class="space-y-2">
-        <NuxtLink
-          to="/sessions"
-          class="inline-flex items-center gap-1.5 text-[0.75rem] font-medium text-slate-400 transition hover:text-indigo-400"
-        >
-          <span aria-hidden="true">←</span>
-          Changer de jeu
-        </NuxtLink>
-        <p
-          class="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-indigo-400"
-        >
-          CoachMe · Trouver un coach
-        </p>
-        <h1 class="text-2xl font-semibold sm:text-3xl">
-          Coachs pour {{ gameName ?? gameSlug }}
-        </h1>
-        <p class="max-w-2xl text-sm text-slate-300/85">
-          Filtre par nom ou bio et explore les profils pour trouver le coach qui
-          te correspond.
-        </p>
-      </header>
-
-      <CoachFilters
-        :games="gameOptions"
-        :selected-game-slug="filters.gameSlug"
-        :search-text="filters.searchText"
-        :show-game-select="false"
-        @update:searchText="setSearchText"
-      />
-
-      <section class="min-h-[160px]">
-        <div
-          v-if="error"
-          class="mb-4 rounded-xl border border-[#f43f5e]/35 bg-[#f43f5e]/10 px-3 py-2 text-xs text-rose-100/90"
-        >
-          {{ error }}
-        </div>
-
-        <div v-if="loading" class="text-xs text-slate-300/80">
-          Chargement des coachs…
-        </div>
-
-        <div
-          v-else-if="!results.length"
-          class="rounded-2xl border border-white/10 bg-[#020617]/80 p-6 text-xs text-slate-300/85"
-        >
-          Aucun coach trouvé pour ce jeu avec les filtres actuels.
-        </div>
-
-        <div v-else class="grid gap-4 md:grid-cols-2">
-          <CoachCard
-            v-for="coach in results"
-            :key="coach.profileId"
-            :coach="coach"
-            :selected-game-slug="filters.gameSlug"
-          />
-        </div>
-      </section>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useCoaches } from "~/composables/useCoaches";
 
@@ -88,8 +23,11 @@ const client = useSupabaseClient();
 const gameOptions = ref<GameOption[]>([]);
 const gameName = ref<string | null>(null);
 
-const { loading, error, results, filters, loadCoaches, setGameFilter } =
-  useCoaches();
+const { loading, error, results, filters, loadCoaches, setGameFilter } = useCoaches();
+
+const setSearchText = (value: string) => {
+  filters.value.searchText = value;
+};
 
 const loadGames = async () => {
   const { data, error: gamesError } = await (client as any)
@@ -128,3 +66,68 @@ onMounted(async () => {
   }
 });
 </script>
+
+<template>
+  <div class="mx-auto max-w-6xl px-4 py-12">
+    <!-- Header -->
+    <header class="mb-10 space-y-3">
+      <NuxtLink
+        to="/sessions"
+        class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
+      >
+        <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
+        Changer de jeu
+      </NuxtLink>
+      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+        CoachMe · Trouver un coach
+      </p>
+      <h1 class="text-3xl font-black text-white md:text-4xl">
+        Coachs {{ gameName ?? gameSlug }}
+      </h1>
+      <p class="max-w-xl text-sm text-slate-400">
+        Filtre par nom ou bio et explore les profils pour trouver le coach qui te correspond.
+      </p>
+    </header>
+
+    <!-- Filters -->
+    <CoachFilters
+      :games="gameOptions"
+      :selected-game-slug="filters.gameSlug"
+      :search-text="filters.searchText"
+      :show-game-select="false"
+      @update:searchText="setSearchText"
+    />
+
+    <!-- Results -->
+    <section class="mt-8 min-h-[160px]">
+      <div
+        v-if="error"
+        class="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300"
+      >
+        {{ error }}
+      </div>
+
+      <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
+        <div class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500" />
+        Chargement des coachs…
+      </div>
+
+      <div
+        v-else-if="!results.length"
+        class="rounded-3xl border border-white/5 bg-white/[0.02] p-12 text-center"
+      >
+        <UIcon name="i-heroicons-user-group" class="mx-auto mb-3 h-8 w-8 text-slate-600" />
+        <p class="text-sm text-slate-500">Aucun coach trouvé pour ce jeu avec les filtres actuels.</p>
+      </div>
+
+      <div v-else class="grid gap-4 md:grid-cols-2">
+        <CoachCard
+          v-for="coach in results"
+          :key="coach.profileId"
+          :coach="coach"
+          :selected-game-slug="filters.gameSlug"
+        />
+      </div>
+    </section>
+  </div>
+</template>

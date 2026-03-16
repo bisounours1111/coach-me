@@ -1,56 +1,3 @@
-<template>
-  <div class="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
-    <div class="mx-auto w-full max-w-5xl">
-      <header class="mb-6 space-y-2">
-        <p
-          class="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-indigo-400"
-        >
-          CoachMe · Trouver un coach
-        </p>
-        <h1 class="text-2xl font-semibold sm:text-3xl">Choisis ton jeu</h1>
-        <p class="max-w-2xl text-sm text-slate-300/85">
-          Sélectionne un jeu pour voir les coachs disponibles et trouver celui
-          qui te correspond.
-        </p>
-      </header>
-
-      <div class="mb-6">
-        <div class="relative max-w-xs">
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Filtrer les jeux par nom…"
-            class="w-full rounded-xl border border-white/10 bg-[#020617] px-3 py-2 text-xs text-slate-100 placeholder:text-slate-400/70 outline-none transition focus:border-[#14b8a6]/60"
-          />
-        </div>
-      </div>
-
-      <div v-if="loading" class="text-sm text-slate-400">
-        Chargement des jeux…
-      </div>
-
-      <div
-        v-else-if="filteredGames.length === 0"
-        class="rounded-2xl border border-white/10 bg-[#020617]/80 p-8 text-center text-sm text-slate-400"
-      >
-        Aucun jeu disponible pour le moment.
-      </div>
-
-      <section
-        v-else
-        class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-      >
-        <GameCard
-          v-for="game in filteredGames"
-          :key="game.id"
-          :game="game"
-          :coach-count="coachCountByGameId.get(game.id) ?? null"
-        />
-      </section>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 type Game = {
   id: string;
@@ -71,6 +18,7 @@ const client = useSupabaseClient();
 const loading = ref(true);
 const games = ref<Game[]>([]);
 const search = ref("");
+
 const filteredGames = computed(() => {
   const term = search.value.trim().toLowerCase();
   if (!term) return games.value;
@@ -80,6 +28,7 @@ const filteredGames = computed(() => {
     return name.includes(term) || slug.includes(term);
   });
 });
+
 const coachCountByGameId = ref<Map<string, number>>(new Map());
 
 const loadGames = async () => {
@@ -115,3 +64,55 @@ const loadGames = async () => {
 
 onMounted(loadGames);
 </script>
+
+<template>
+  <div class="mx-auto max-w-6xl px-4 py-12">
+    <!-- Header -->
+    <header class="mb-10 space-y-3">
+      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+        CoachMe · Trouver un coach
+      </p>
+      <h1 class="text-3xl font-black text-white md:text-4xl">Choisis ton jeu</h1>
+      <p class="max-w-xl text-sm text-slate-400">
+        Sélectionne un jeu pour voir les coachs disponibles et trouver celui qui te correspond.
+      </p>
+    </header>
+
+    <!-- Search -->
+    <div class="mb-8">
+      <div class="relative max-w-xs">
+        <UIcon name="i-heroicons-magnifying-glass" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Filtrer les jeux…"
+          class="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-teal-500/40 focus:bg-white/[0.07]"
+        />
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
+      <div class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500" />
+      Chargement des jeux…
+    </div>
+
+    <!-- Empty -->
+    <div
+      v-else-if="filteredGames.length === 0"
+      class="rounded-3xl border border-white/5 bg-white/[0.02] p-12 text-center"
+    >
+      <p class="text-sm text-slate-500">Aucun jeu disponible pour le moment.</p>
+    </div>
+
+    <!-- Grid -->
+    <section v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <GameCard
+        v-for="game in filteredGames"
+        :key="game.id"
+        :game="game"
+        :coach-count="coachCountByGameId.get(game.id) ?? null"
+      />
+    </section>
+  </div>
+</template>

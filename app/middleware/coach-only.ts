@@ -3,7 +3,10 @@ export default defineNuxtRouteMiddleware(async () => {
   const client = useSupabaseClient();
   const { getUserRole } = useProfile();
 
-  console.log("[Middleware:coach-only] Vérification d'accès pour:", useRoute().path);
+  console.log(
+    "[Middleware:coach-only] Vérification d'accès pour:",
+    useRoute().path,
+  );
 
   // 1. Récupération robuste de l'ID (SSR friendly)
   let userId = user.value?.id;
@@ -13,14 +16,16 @@ export default defineNuxtRouteMiddleware(async () => {
   }
 
   if (!userId) {
-    console.log("[Middleware:coach-only] Aucun utilisateur trouvé, redirection vers login");
+    console.log(
+      "[Middleware:coach-only] Aucun utilisateur trouvé, redirection vers login",
+    );
     return navigateTo("/auth/login");
   }
 
   // 2. Vérification du rôle global
   const role = await getUserRole(userId);
   console.log("[Middleware:coach-only] Rôle détecté:", role);
-  
+
   if (role === "maintainer" || role === "coach") {
     console.log("[Middleware:coach-only] Accès AUTORISÉ (rôle)");
     return;
@@ -32,7 +37,9 @@ export default defineNuxtRouteMiddleware(async () => {
     .select("is_coach")
     .eq("profile_id", userId);
 
-  const isCoach = (gameRoles ?? []).some((gameRole: { is_coach: boolean }) => gameRole.is_coach);
+  const isCoach = (gameRoles ?? []).some(
+    (gameRole: { is_coach: boolean }) => gameRole.is_coach,
+  );
   console.log("[Middleware:coach-only] Coach via jeux:", isCoach);
 
   if (isCoach) {

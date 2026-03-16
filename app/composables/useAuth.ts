@@ -1,4 +1,4 @@
-import type { UserRole } from "../types/auth";
+import type { UserRole } from "~/types/auth";
 
 export const useAuth = () => {
   const client = useSupabaseClient();
@@ -50,10 +50,8 @@ export const useAuth = () => {
       throw signUpError;
     }
 
-    // FORCE LOGIN: If confirmation is off, data.session exists.
-    // We can redirect them immediately.
     if (data.user && data.session) {
-      await router.push("/dashboard"); // Or your home route
+      await router.push("/dashboard");
     }
 
     return data.user ?? null;

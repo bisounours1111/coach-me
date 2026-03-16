@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Game } from "../../types/profile";
+import type { Game } from "~/types/profile";
 
 const props = withDefaults(
   defineProps<{
@@ -87,4 +87,3 @@ const remove = (index: number) => {
   localGames.value = copy.length ? copy : [{ name: "", rank: "" }];
 };
 </script>
-

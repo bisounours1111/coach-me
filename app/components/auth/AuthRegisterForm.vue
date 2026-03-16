@@ -7,9 +7,11 @@
           <button
             type="button"
             class="rounded-xl border bg-[#0b0f19]/45 p-4 text-left text-sm backdrop-blur transition"
-            :class="role === 'student'
-              ? 'border-[#14b8a6]/55 shadow-[0_0_0_4px_rgba(20,184,166,0.10)]'
-              : 'border-white/10 hover:border-white/20'"
+            :class="
+              role === 'student'
+                ? 'border-[#14b8a6]/55 shadow-[0_0_0_4px_rgba(20,184,166,0.10)]'
+                : 'border-white/10 hover:border-white/20'
+            "
             @click="role = 'student'"
           >
             <p class="font-semibold text-slate-50">Élève</p>
@@ -20,9 +22,11 @@
           <button
             type="button"
             class="rounded-xl border bg-[#0b0f19]/45 p-4 text-left text-sm backdrop-blur transition"
-            :class="role === 'coach'
-              ? 'border-[#6366f1]/55 shadow-[0_0_0_4px_rgba(99,102,241,0.10)]'
-              : 'border-white/10 hover:border-white/20'"
+            :class="
+              role === 'coach'
+                ? 'border-[#6366f1]/55 shadow-[0_0_0_4px_rgba(99,102,241,0.10)]'
+                : 'border-white/10 hover:border-white/20'
+            "
             @click="role = 'coach'"
           >
             <p class="font-semibold text-slate-50">Coach</p>
@@ -60,9 +64,7 @@
         @update:model-value="passwordConfirm = $event"
       />
 
-      <AuthSubmitButton :loading="loading">
-        Créer mon compte
-      </AuthSubmitButton>
+      <AuthSubmitButton :loading="loading"> Créer mon compte </AuthSubmitButton>
 
       <div
         v-if="successMessage"
@@ -82,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAuth } from "../../../composables/useAuth";
+import { useAuth } from "~/composables/useAuth";
 
 const router = useRouter();
 const { signUp, loading, error } = useAuth();

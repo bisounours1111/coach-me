@@ -10,7 +10,7 @@
       <div class="flex items-center justify-between">
         <p class="text-xs font-medium text-slate-200/90">Jeux & rangs</p>
       </div>
-      <GameSelector v-model="localValue.games" />
+      <GameGameSelector v-model="localValue.games" />
       <p v-if="errors?.games" class="text-[0.7rem] text-rose-200/90">{{ errors.games }}</p>
     </div>
 
@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ProfileFieldErrors, ProfileFormData } from "../../types/profile";
+import type { ProfileFieldErrors, ProfileFormData } from "~/types/profile";
 
 const props = withDefaults(
   defineProps<{
@@ -182,4 +182,3 @@ const emitValidate = () => emit("validate");
 
 const onSubmit = () => emit("submit");
 </script>
-

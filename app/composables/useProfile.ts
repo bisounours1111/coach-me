@@ -1,4 +1,4 @@
-import type { Profile, UserRole } from "../types/auth";
+import type { Profile, UserRole } from "~/types/auth";
 
 export const useProfile = () => {
   const client = useSupabaseClient();
@@ -45,4 +45,3 @@ export const useProfile = () => {
     createProfile,
   };
 };
-

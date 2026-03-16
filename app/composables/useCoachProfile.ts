@@ -1,5 +1,5 @@
-import type { CoachProfile, ProfileFieldErrors, ProfileFormData } from "../types/profile";
-import { validateBio, validateGames, validateUrl } from "../utils/validation";
+import type { CoachProfile, ProfileFieldErrors, ProfileFormData } from "~/types/profile";
+import { validateBio, validateGames, validateUrl } from "~/utils/validation";
 
 const emptyFormData = (): ProfileFormData => ({
   games: [{ name: "", rank: "" }],
@@ -208,7 +208,7 @@ export const useCoachProfile = () => {
       successMessage.value = "Profil mis à jour.";
       return { ok: true as const };
     } catch (e: any) {
-      saveError.value = e?.message || "Impossible d’enregistrer. Réessaie plus tard.";
+      saveError.value = e?.message || "Impossible d'enregistrer. Réessaie plus tard.";
       return { ok: false as const };
     } finally {
       saving.value = false;
@@ -236,4 +236,3 @@ export const useCoachProfile = () => {
     clearMessages,
   };
 };
-

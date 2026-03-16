@@ -1,4 +1,4 @@
-import { useProfile } from "../../composables/useProfile";
+import { useProfile } from "~/composables/useProfile";
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser();
@@ -90,4 +90,3 @@ export default defineNuxtRouteMiddleware(async (to) => {
     );
   }
 });
-

@@ -20,7 +20,7 @@ onMounted(async () => {
 });
 
 const isOwnProfile = computed(() => {
-  const currentId = user.value?.id || authUserId.value;
+  const currentId = user.value?.sub || authUserId.value;
   const targetId = profile.value?.id;
   if (!currentId || !targetId) return false;
   return String(currentId).toLowerCase() === String(targetId).toLowerCase();
@@ -117,6 +117,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
         :profile="profile"
         :is-coach="isCoach"
         :min-rate="minRate"
+        :is-own-profile="isOwnProfile"
       />
 
       <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
@@ -164,6 +165,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                     :key="offer.id"
                     :offer="offer"
                     :game-name="game.gameName"
+                    :is-own-profile="isOwnProfile"
                   />
                 </div>
 

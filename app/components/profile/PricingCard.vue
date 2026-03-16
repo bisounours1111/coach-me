@@ -2,10 +2,10 @@
 const props = defineProps<{
   offer: PublicCoachingOffer;
   gameName: string;
+  profileId: string;
   isOwnProfile?: boolean;
 }>();
 
-// Split multi-line descriptions into feature bullets
 const features = computed(() => {
   if (!props.offer.description) return [];
   const lines = props.offer.description
@@ -18,6 +18,15 @@ const features = computed(() => {
 const descriptionText = computed(() =>
   features.value.length === 0 ? props.offer.description : "",
 );
+
+const { startCheckout, loading, error } = useCheckout();
+
+const reserve = () =>
+  startCheckout({
+    coachingId: props.offer.id!,
+    profileId: props.profileId,
+    gameName: props.gameName,
+  });
 </script>
 
 <template>
@@ -59,7 +68,7 @@ const descriptionText = computed(() =>
         </div>
 
         <div
-          class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-slate-400 group-hover:bg-teal-500/20 group-hover:text-teal-400 transition-colors"
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-slate-400 transition-colors group-hover:bg-teal-500/20 group-hover:text-teal-400"
         >
           <UIcon name="i-heroicons-bolt" class="h-6 w-6" />
         </div>
@@ -74,7 +83,7 @@ const descriptionText = computed(() =>
       <div class="flex-1 space-y-4">
         <p
           v-if="descriptionText"
-          class="text-sm leading-relaxed text-slate-400 line-clamp-4"
+          class="line-clamp-4 text-sm leading-relaxed text-slate-400"
         >
           {{ descriptionText }}
         </p>
@@ -98,22 +107,33 @@ const descriptionText = computed(() =>
       </div>
 
       <!-- Footer: CTA -->
-      <div v-if="!isOwnProfile" class="mt-8">
+      <div v-if="!isOwnProfile" class="mt-8 space-y-2">
         <button
-          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95"
+          :disabled="loading || !offer.hourlyRate"
+          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:text-slate-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          @click="reserve"
         >
           <span class="relative z-10 flex items-center justify-center gap-2">
-            RÉSERVER MAINTENANT
             <UIcon
-              name="i-heroicons-arrow-right"
-              class="h-4 w-4 transition-transform group-hover/btn:translate-x-1"
+              v-if="loading"
+              name="i-heroicons-arrow-path"
+              class="h-4 w-4 animate-spin"
             />
+            <template v-else>
+              {{ offer.hourlyRate ? "RÉSERVER MAINTENANT" : "SUR MESURE" }}
+              <UIcon
+                v-if="offer.hourlyRate"
+                name="i-heroicons-arrow-right"
+                class="h-4 w-4 transition-transform group-hover/btn:translate-x-1"
+              />
+            </template>
           </span>
-          <!-- Hover Background Animation -->
           <div
+            v-if="offer.hourlyRate"
             class="absolute inset-0 -translate-x-full bg-gradient-to-r from-teal-400 to-teal-500 transition-transform duration-500 group-hover/btn:translate-x-0"
           />
         </button>
+        <p v-if="error" class="text-center text-xs text-red-400">{{ error }}</p>
       </div>
     </div>
   </div>

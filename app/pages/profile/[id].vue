@@ -171,6 +171,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                       :key="offer.id"
                       :offer="offer"
                       :game-name="game.gameName"
+                      :profile-id="profile.id"
                       :is-own-profile="isOwnProfile"
                     />
                   </div>

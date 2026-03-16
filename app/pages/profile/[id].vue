@@ -34,6 +34,15 @@ const {
   getPublicProfile(route.params.id as string),
 );
 
+const { fetchReviewsForProfile } = useReviews();
+const reviews = ref<Awaited<ReturnType<typeof fetchReviewsForProfile>>>([]);
+
+onMounted(async () => {
+  if (profile.value?.id) {
+    reviews.value = await fetchReviewsForProfile(profile.value.id);
+  }
+});
+
 const coachGames = computed(
   () => profile.value?.games.filter((g) => g.isCoach) ?? [],
 );
@@ -196,6 +205,9 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                   </div>
                 </div>
               </div>
+
+              <!-- Reviews -->
+              <ProfileReviews :reviews="reviews" />
 
               <!-- Info Section if no coaching -->
               <div v-else class="py-12">

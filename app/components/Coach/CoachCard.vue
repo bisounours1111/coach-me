@@ -49,7 +49,7 @@
         <span v-else class="text-slate-400">Tarif à définir</span>
       </div>
       <NuxtLink
-        :to="`/profiles/${coach.profileId}`"
+        :to="`/profile/${coach.profileId}`"
         class="inline-flex items-center gap-1 rounded-full bg-indigo-500 px-3 py-1.5 text-[0.7rem] font-semibold text-slate-50 shadow shadow-indigo-500/30 transition hover:bg-indigo-400"
       >
         Voir le profil

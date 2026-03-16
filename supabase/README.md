@@ -13,7 +13,10 @@ supabase/
 │   ├── 004_fix_function_search_path_security.sql
 │   ├── 005_fix_sessions_table_issue_24.sql
 │   ├── 006_fix_reviews_status_check.sql
-│   └── 007_create_coach_videos_bucket.sql
+│   ├── 007_create_coach_videos_bucket.sql
+│   ├── 008_create_game_ranks_table.sql
+│   ├── 014_allow_maintainers_manage_games.sql
+│   └── 015_add_rank_icons_storage.sql
 └── README.md
 ```
 
@@ -54,6 +57,9 @@ Les migrations doivent être appliquées dans l'ordre suivant :
 5. **005_fix_sessions_table_issue_24.sql** : Aligne la table sessions avec l'issue #24
 6. **006_fix_reviews_status_check.sql** : Corrige le statut pour les reviews
 7. **007_create_coach_videos_bucket.sql** : Crée le bucket Storage pour les vidéos des coachs
+8. **008_create_game_ranks_table.sql** : Crée la table `game_ranks` pour gérer les rangs par jeu
+9. **014_allow_maintainers_manage_games.sql** : Autorise les maintainers à gérer `games` via RLS
+10. **015_add_rank_icons_storage.sql** : Ajoute `icon_url` sur `game_ranks` et le bucket `rank`
 
 ## Vérification
 

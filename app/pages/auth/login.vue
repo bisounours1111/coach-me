@@ -37,6 +37,7 @@ useHead({
 });
 
 const router = useRouter();
+const client = useSupabaseClient();
 const { signIn } = useAuth();
 const { getUserRole } = useProfile();
 
@@ -53,13 +54,43 @@ const onSubmit = async () => {
 
   try {
     await signIn(email.value, password.value);
+    console.info("[login] signIn success");
 
-    const user = useSupabaseUser().value;
-    const role = user ? await getUserRole(user.id) : null;
+    const userFromState = useSupabaseUser().value;
+    const user = userFromState?.id ? userFromState : (await client.auth.getUser()).data.user;
+    const role = user?.id ? await getUserRole(user.id) : null;
+    console.info("[login] profile loaded", {
+      userId: user?.id ?? null,
+      email: user?.email ?? null,
+      role,
+    });
 
-    if (role === "coach") {
+    if (!user?.id) {
+      throw new Error("Session introuvable juste après connexion.");
+    }
+
+    if (role === "maintainer") {
+      await router.push("/dashboard/admin");
+      return;
+    }
+
+    const { data: gameRoles } = await (client as any)
+      .from("profile_game_roles")
+      .select("is_coach")
+      .eq("profile_id", user.id);
+
+    const hasAnyGame = Boolean(gameRoles?.length);
+    const isCoach = (gameRoles ?? []).some((gameRole: { is_coach: boolean }) => gameRole.is_coach);
+    console.info("[login] profile_game_roles loaded", {
+      userId: user.id,
+      gameRolesCount: gameRoles?.length ?? 0,
+      hasAnyGame,
+      isCoach,
+    });
+
+    if (isCoach) {
       await router.push("/dashboard/coach");
-    } else if (role === "student") {
+    } else if (hasAnyGame) {
       await router.push("/dashboard/student");
     } else {
       await router.push("/onboarding/preferences");

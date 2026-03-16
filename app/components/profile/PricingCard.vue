@@ -17,121 +17,77 @@ const features = computed(() => {
 const descriptionText = computed(() =>
   features.value.length === 0 ? props.offer.description : "",
 );
-
-const previewVideos = computed(() => props.offer.videoUrls.slice(0, 3));
-const extraVideos = computed(() =>
-  Math.max(0, props.offer.videoUrls.length - 3),
-);
 </script>
 
 <template>
   <div
-    class="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-500/30 hover:bg-white/[0.06] hover:shadow-2xl hover:shadow-teal-950/50"
+    class="group relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0f19]/40 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:border-teal-500/40 hover:shadow-[0_20px_50px_rgba(20,184,166,0.15)]"
   >
-    <!-- Top gradient accent bar -->
-    <div
-      class="h-0.5 w-full bg-gradient-to-r from-teal-500 via-indigo-500 to-teal-500 opacity-60 transition-opacity duration-300 group-hover:opacity-100"
-    />
+    <!-- Premium Glow Effect -->
+    <div class="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-teal-500/10 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
 
-    <!-- Glow on hover -->
-    <div
-      class="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-      style="
-        background: radial-gradient(
-          ellipse at 50% 0%,
-          rgba(20, 184, 166, 0.07),
-          transparent 60%
-        );
-      "
-    />
-
-    <div class="relative flex flex-1 flex-col gap-5 p-6">
-      <!-- Rate section -->
-      <div>
-        <div v-if="offer.hourlyRate !== null" class="flex items-baseline gap-1">
-          <span
-            class="bg-gradient-to-r from-teal-300 to-teal-400 bg-clip-text text-4xl font-black text-transparent"
-          >
-            {{ offer.hourlyRate }}€
-          </span>
-          <span class="text-sm font-medium text-slate-400">/heure</span>
+    <div class="relative flex flex-1 flex-col p-8">
+      <!-- Header: Price & Label -->
+      <div class="flex items-start justify-between">
+        <div class="space-y-1">
+          <div v-if="offer.hourlyRate !== null" class="flex items-baseline gap-1">
+            <span class="text-4xl font-black tracking-tight text-white">
+              {{ offer.hourlyRate }}€
+            </span>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-500">/heure</span>
+          </div>
+          <div v-else class="text-xl font-black text-slate-400 uppercase tracking-tight">
+            Sur mesure
+          </div>
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-teal-500/80">
+            Session Individuelle
+          </p>
         </div>
-        <div v-else class="text-base font-semibold italic text-slate-400">
-          Tarif sur demande
+        
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-slate-400 group-hover:bg-teal-500/20 group-hover:text-teal-400 transition-colors">
+          <UIcon name="i-heroicons-bolt" class="h-6 w-6" />
         </div>
-        <div class="mt-1 text-xs text-slate-600">Coaching · {{ gameName }}</div>
       </div>
 
-      <!-- Separator -->
-      <div
-        class="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent"
-      />
+      <!-- Divider -->
+      <div class="my-6 h-px w-full bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
 
-      <!-- Description or features -->
-      <div class="flex-1 space-y-2.5">
+      <!-- Content: Description or Features -->
+      <div class="flex-1 space-y-4">
         <p
           v-if="descriptionText"
-          class="text-sm leading-relaxed text-slate-400"
+          class="text-sm leading-relaxed text-slate-400 line-clamp-4"
         >
           {{ descriptionText }}
         </p>
-        <ul v-else-if="features.length" class="space-y-2">
+        <ul v-else-if="features.length" class="space-y-3">
           <li
             v-for="(feat, i) in features"
             :key="i"
-            class="flex items-start gap-2.5 text-sm text-slate-300"
+            class="flex items-start gap-3 text-sm text-slate-300"
           >
-            <span class="mt-0.5 flex-shrink-0 text-teal-400">✓</span>
-            {{ feat }}
+            <div class="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-teal-400">
+              <UIcon name="i-heroicons-check" class="h-3 w-3" />
+            </div>
+            <span class="leading-tight">{{ feat }}</span>
           </li>
         </ul>
-        <p v-else class="text-sm italic text-slate-600">Pas de description.</p>
+        <p v-else class="text-sm italic text-slate-600">Aucun détail supplémentaire.</p>
       </div>
 
-      <!-- Video previews -->
-      <div v-if="offer.videoUrls.length" class="space-y-2">
-        <p class="text-xs font-medium text-slate-500">
-          {{ offer.videoUrls.length }} vidéo{{
-            offer.videoUrls.length > 1 ? "s" : ""
-          }}
-          incluse{{ offer.videoUrls.length > 1 ? "s" : "" }}
-        </p>
-        <div class="flex items-center gap-2">
-          <a
-            v-for="url in previewVideos"
-            :key="url"
-            :href="url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group/v relative flex h-10 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-800 transition-all duration-200 hover:border-white/25 hover:brightness-125"
-          >
-            <UIcon
-              name="i-heroicons-play-circle"
-              class="h-5 w-5 text-slate-500 transition-colors group-hover/v:text-slate-300"
-            />
-          </a>
-          <span v-if="extraVideos > 0" class="text-xs text-slate-600">
-            +{{ extraVideos }}
+      <!-- Footer: CTA -->
+      <div class="mt-8">
+        <button
+          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95"
+        >
+          <span class="relative z-10 flex items-center justify-center gap-2">
+            RÉSERVER MAINTENANT
+            <UIcon name="i-heroicons-arrow-right" class="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
           </span>
-        </div>
+          <!-- Hover Background Animation -->
+          <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-teal-400 to-teal-500 transition-transform duration-500 group-hover/btn:translate-x-0" />
+        </button>
       </div>
-
-      <!-- CTA -->
-      <button
-        class="group/btn relative mt-auto w-full overflow-hidden rounded-xl border border-teal-500/25 bg-teal-500/8 py-3 text-sm font-bold text-teal-300 transition-all duration-300 hover:border-teal-400 hover:bg-teal-500 hover:text-white hover:shadow-lg hover:shadow-teal-500/20 active:scale-95"
-      >
-        <span class="relative z-10 flex items-center justify-center gap-2">
-          <UIcon name="i-heroicons-calendar" class="h-4 w-4" />
-          Réserver ·
-          <span class="font-black">
-            {{
-              offer.hourlyRate !== null
-                ? `${offer.hourlyRate}€/h`
-                : "Me contacter"
-            }}
-          </span>
-        </span>
-      </button>
     </div>
   </div>
 </template>

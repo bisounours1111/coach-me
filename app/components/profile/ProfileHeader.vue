@@ -9,6 +9,7 @@ const props = defineProps<{
 const user = useSupabaseUser();
 const client = useSupabaseClient();
 const sessionUser = ref<any>(null);
+const copied = ref(false);
 
 onMounted(async () => {
   const { data } = await client.auth.getUser();
@@ -20,35 +21,18 @@ onMounted(async () => {
 const isOwnProfileComputed = computed(() => {
   if (props.isOwnProfile) return true;
   const u = user.value || sessionUser.value;
-  const currentUserId = u?.sub;
+  const currentUserId = u?.id;
   const profileId = props.profile?.id;
   if (!currentUserId || !profileId) return false;
-  return (
-    String(currentUserId).toLowerCase() === String(profileId).toLowerCase()
-  );
+  return String(currentUserId).toLowerCase() === String(profileId).toLowerCase();
 });
 
-const socialConfig: Record<
-  string,
-  { label: string; icon: string; color: string }
-> = {
-  youtube: {
-    label: "YouTube",
-    icon: "i-simple-icons-youtube",
-    color: "#FF0000",
-  },
+const socialConfig: Record<string, { label: string; icon: string; color: string }> = {
+  youtube: { label: "YouTube", icon: "i-simple-icons-youtube", color: "#FF0000" },
   twitch: { label: "Twitch", icon: "i-simple-icons-twitch", color: "#9146FF" },
   twitter: { label: "X / Twitter", icon: "i-simple-icons-x", color: "#e2e8f0" },
-  discord: {
-    label: "Discord",
-    icon: "i-simple-icons-discord",
-    color: "#5865F2",
-  },
-  website: {
-    label: "Site web",
-    icon: "i-heroicons-globe-alt",
-    color: "#14b8a6",
-  },
+  discord: { label: "Discord", icon: "i-simple-icons-discord", color: "#5865F2" },
+  website: { label: "Site web", icon: "i-heroicons-globe-alt", color: "#14b8a6" },
 };
 
 const activeSocials = computed(() =>
@@ -68,198 +52,203 @@ const activeSocials = computed(() =>
 const coachGamesCount = computed(
   () => props.profile.games.filter((g) => g.isCoach).length,
 );
+
+const copyProfileLink = () => {
+  if (process.client) {
+    navigator.clipboard.writeText(window.location.href);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  }
+};
 </script>
 
 <template>
-  <header class="relative overflow-hidden">
-    <div
-      class="pointer-events-none absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-teal-500/8 blur-3xl"
-    />
-    <div
-      class="pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-950/20 via-transparent to-transparent"
-    />
+  <div class="relative">
+    <!-- ─── Full-width Integrated Background ─── -->
+    <div class="absolute inset-0 z-0">
+      <!-- Base dark tint -->
+      <div class="absolute inset-0 bg-[#0b0f19]/40" />
+      
+      <!-- Animated glows -->
+      <div class="absolute -left-24 -top-24 h-[500px] w-[500px] animate-pulse rounded-full bg-teal-500/10 blur-[120px]" />
+      <div class="absolute -right-24 top-0 h-[500px] w-[500px] animate-pulse rounded-full bg-indigo-500/10 blur-[120px] [animation-delay:2s]" />
+      
+      <!-- Smooth transition to page background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050812]" />
+      
+      <!-- Subtle bottom border fade -->
+      <div class="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    </div>
 
-    <div class="relative mx-auto max-w-6xl px-4 pb-10 pt-12">
-      <div
-        class="relative overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-sm"
-      >
-        <div
-          class="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500/[0.04] via-transparent to-indigo-500/[0.04]"
-        />
-        <div
-          class="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/10 blur-3xl"
-        />
-
-        <div class="relative flex flex-col md:flex-row">
-          <div
-            class="flex flex-col items-center gap-5 border-b border-white/8 p-6 text-center md:w-72 md:min-w-[18rem] md:items-start md:border-b-0 md:border-r md:p-8 md:text-left lg:w-80 lg:min-w-[20rem]"
-          >
-            <div class="relative">
-              <div
-                class="h-28 w-28 overflow-hidden rounded-full ring-2 ring-teal-500/40 ring-offset-2 ring-offset-[#0b0f19] md:h-32 md:w-32"
-              >
+    <!-- ─── Header Content ─── -->
+    <header class="relative z-10 mx-auto max-w-6xl px-4 pt-16 pb-12">
+      <div class="flex flex-col md:flex-row gap-8 md:gap-12">
+        
+        <!-- ═══════════════════════════════════
+             SECTION GAUCHE — Avatar & Identity
+             ═══════════════════════════════════ -->
+        <div class="flex flex-col items-center md:items-start gap-6 md:w-80 shrink-0">
+          <!-- Avatar Section -->
+          <div class="relative group">
+            <div class="relative h-36 w-36 md:h-44 md:w-44">
+              <!-- Decorative rotating ring -->
+              <div class="absolute inset-0 animate-spin-slow rounded-full bg-gradient-to-tr from-teal-500 via-transparent to-indigo-500 opacity-50" />
+              <div class="absolute inset-1 rounded-full bg-[#050812]" />
+              
+              <div class="absolute inset-2 overflow-hidden rounded-full ring-1 ring-white/10">
                 <img
                   v-if="profile.avatarUrl"
                   :src="profile.avatarUrl"
                   :alt="profile.fullName"
-                  class="h-full w-full object-cover"
+                  class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div
                   v-else
-                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-teal-600 to-indigo-600 text-4xl font-black text-white"
+                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-teal-600 to-indigo-600 text-5xl font-black text-white"
                 >
                   {{ profile.fullName.charAt(0).toUpperCase() }}
                 </div>
               </div>
-              <div
-                v-if="isCoach"
-                class="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full border-2 border-[#0b0f19] bg-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.9)]"
-              />
             </div>
+            
+            <!-- Status Badge -->
+            <div
+              v-if="isCoach"
+              class="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#050812] bg-teal-400 shadow-[0_0_20px_rgba(20,184,166,0.6)]"
+            >
+              <UIcon name="i-heroicons-check-badge" class="h-4 w-4 text-slate-950" />
+            </div>
+          </div>
 
+          <!-- Name & Bio -->
+          <div class="space-y-4 w-full text-center md:text-left">
             <div class="space-y-2">
-              <h1
-                class="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-2xl font-black text-transparent leading-tight"
-              >
+              <h1 class="text-4xl font-black tracking-tight text-white md:text-5xl leading-tight">
                 {{ profile.fullName }}
               </h1>
-              <div class="flex flex-wrap justify-center gap-2 md:justify-start">
+              <div class="flex flex-wrap justify-center md:justify-start gap-2">
                 <span
                   v-if="isCoach"
-                  class="rounded-full border border-teal-500/40 bg-teal-500/15 px-3 py-0.5 text-[11px] font-bold uppercase tracking-widest text-teal-300"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-teal-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-teal-400 ring-1 ring-teal-500/30"
                 >
-                  ✦ Coach
+                  <span class="relative flex h-2 w-2">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-teal-500"></span>
+                  </span>
+                  Coach Certifié
                 </span>
                 <span
                   v-else
-                  class="rounded-full border border-slate-600/40 bg-slate-500/15 px-3 py-0.5 text-[11px] font-bold uppercase tracking-widest text-slate-400"
+                  class="rounded-full bg-slate-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 ring-1 ring-slate-500/30"
                 >
                   Joueur
                 </span>
               </div>
             </div>
 
-            <div
-              class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
-            />
-
-            <div class="flex-1">
-              <p
-                v-if="profile.bio"
-                class="whitespace-pre-wrap text-sm leading-relaxed text-slate-400"
-              >
-                {{ profile.bio }}
-              </p>
-              <p v-else class="text-sm italic text-slate-600">
-                Aucune biographie renseignée.
-              </p>
-            </div>
+            <p v-if="profile.bio" class="text-sm leading-relaxed text-slate-300/90 whitespace-pre-wrap italic">
+              "{{ profile.bio }}"
+            </p>
           </div>
+        </div>
 
-          <div class="flex flex-1 flex-col justify-between gap-6 p-6 md:p-8">
-            <div v-if="isCoach" class="space-y-4">
-              <p
-                class="text-xs font-bold uppercase tracking-widest text-slate-600"
-              >
-                En un coup d'œil
-              </p>
-              <div class="flex flex-wrap gap-6">
-                <div>
-                  <div class="text-2xl font-black text-teal-400">
-                    {{ coachGamesCount }}
-                  </div>
-                  <div class="text-xs text-slate-500">
-                    Jeu{{ coachGamesCount > 1 ? "x" : "" }} coaché{{
-                      coachGamesCount > 1 ? "s" : ""
-                    }}
-                  </div>
+        <!-- ═══════════════════════════════════
+             SECTION DROITE — Stats, Socials & Actions
+             ═══════════════════════════════════ -->
+        <div class="flex-1 flex flex-col justify-between py-2">
+          <div class="grid gap-10 lg:grid-cols-2">
+            <!-- Stats -->
+            <div class="space-y-4">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                Performances
+              </h3>
+              <div class="flex gap-10">
+                <div class="space-y-1">
+                  <div class="text-4xl font-black text-white">{{ coachGamesCount }}</div>
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Jeux coachés</div>
                 </div>
-                <div
-                  v-if="minRate !== null"
-                  class="border-l border-white/10 pl-6"
-                >
-                  <div class="text-2xl font-black text-teal-400">
-                    {{ minRate }}€<span
-                      class="text-sm font-medium text-slate-400"
-                      >/h</span
-                    >
+                <div v-if="minRate !== null" class="space-y-1 border-l border-white/10 pl-10">
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-4xl font-black text-teal-400">{{ minRate }}€</span>
+                    <span class="text-xs font-bold text-slate-500">/h</span>
                   </div>
-                  <div class="text-xs text-slate-500">Tarif horaire min.</div>
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tarif min.</div>
                 </div>
               </div>
             </div>
 
-            <div v-else class="space-y-2">
-              <p
-                class="text-xs font-bold uppercase tracking-widest text-slate-600"
-              >
-                Profil joueur
-              </p>
-              <p class="text-sm text-slate-500">
-                {{ profile.games.length }} jeu{{
-                  profile.games.length > 1 ? "x" : ""
-                }}
-                renseigné{{ profile.games.length > 1 ? "s" : "" }}
-              </p>
-            </div>
-
-            <div class="space-y-3">
-              <div class="flex items-center justify-between gap-4">
-                <p
-                  v-if="activeSocials.length"
-                  class="text-xs font-bold uppercase tracking-widest text-slate-600"
-                >
-                  Retrouve-moi sur
-                </p>
-                <div v-else />
-                <NuxtLink
-                  v-if="isOwnProfileComputed"
-                  to="/profile/edit"
-                  class="inline-flex items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-bold text-teal-400 transition-all hover:border-teal-500/50 hover:bg-teal-500/20"
-                >
-                  <UIcon name="i-heroicons-pencil-square" class="h-4 w-4" />
-                  Modifier mon profil
-                </NuxtLink>
-              </div>
-              <div v-if="activeSocials.length" class="flex flex-wrap gap-2">
+            <!-- Socials -->
+            <div class="space-y-4">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                Contact & Partage
+              </h3>
+              <div class="flex flex-wrap gap-2">
                 <a
                   v-for="social in activeSocials"
                   :key="social.key"
                   :href="social.url"
                   target="_blank"
                   rel="noopener noreferrer"
-                  :title="social.label"
-                  class="group flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-xs font-bold text-slate-400 transition-all duration-200 hover:-translate-y-px hover:scale-105 hover:border-white/20 hover:bg-white/10"
+                  class="group flex h-11 items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 text-xs font-bold text-slate-300 transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10"
                 >
-                  <UIcon
-                    :name="social.icon"
-                    class="h-4 w-4 transition-colors"
-                    :style="{ color: social.color }"
-                  />
-                  <span
-                    class="text-slate-500 group-hover:text-slate-300 transition-colors"
-                    >{{ social.label }}</span
-                  >
+                  <UIcon :name="social.icon" class="h-5 w-5" :style="{ color: social.color }" />
+                  <span class="hidden xl:inline">{{ social.label }}</span>
                 </a>
+                
+                <button
+                  @click="copyProfileLink"
+                  class="flex h-11 items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 text-xs font-bold text-slate-300 transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 active:scale-95"
+                >
+                  <UIcon :name="copied ? 'i-heroicons-check' : 'i-heroicons-share'" class="h-5 w-5 text-indigo-400" />
+                  <span class="hidden xl:inline">{{ copied ? 'Copié !' : 'Partager' }}</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <div v-if="isCoach" class="mt-auto pt-2">
+          <!-- CTAs -->
+          <div class="mt-12 flex flex-wrap items-center justify-between gap-6">
+            <div class="flex gap-4">
               <button
-                class="group relative overflow-hidden rounded-xl bg-gradient-to-r from-teal-600 to-teal-500 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-900/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/20 active:scale-95"
+                v-if="isCoach"
+                class="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-teal-500 px-10 py-4 text-sm font-black text-slate-950 transition-all hover:scale-105 hover:bg-teal-400 active:scale-95 shadow-xl shadow-teal-900/20"
               >
-                <span class="relative z-10 flex items-center gap-2.5">
-                  <UIcon name="i-heroicons-calendar" class="h-4 w-4" />
-                  Réserver une session
-                </span>
-                <div
-                  class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-                />
+                <UIcon name="i-heroicons-calendar-days" class="h-5 w-5" />
+                RÉSERVER UN COACHING
+                <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+              </button>
+              
+              <button
+                class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"
+              >
+                <UIcon name="i-heroicons-chat-bubble-left-right" class="h-5 w-5 text-slate-400" />
+                MESSAGE
               </button>
             </div>
+
+            <!-- Edit (Owner) -->
+            <NuxtLink
+              v-if="isOwnProfileComputed"
+              to="/profile/edit"
+              class="flex items-center gap-2 rounded-xl bg-indigo-500/10 px-5 py-2.5 text-xs font-bold text-indigo-400 ring-1 ring-indigo-500/30 transition-all hover:bg-indigo-500/20"
+            >
+              <UIcon name="i-heroicons-pencil-square" class="h-4 w-4" />
+              MODIFIER LE PROFIL
+            </NuxtLink>
           </div>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
+  </div>
 </template>
+
+<style scoped>
+.animate-spin-slow {
+  animation: spin 12s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>

@@ -22,7 +22,6 @@ onMounted(async () => {
 const isOwnProfile = computed(() => {
   const currentId = user.value?.id || authUserId.value;
   const targetId = profile.value?.id;
-  
   if (!currentId || !targetId) return false;
   return String(currentId).toLowerCase() === String(targetId).toLowerCase();
 });
@@ -56,177 +55,224 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <!-- Loading -->
-    <div v-if="pending" class="flex min-h-screen items-center justify-center">
-      <div class="flex flex-col items-center gap-4">
+  <div
+    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30"
+  >
+    <!-- Loading State -->
+    <div
+      v-if="pending"
+      class="flex min-h-screen flex-col items-center justify-center gap-6"
+    >
+      <div class="relative flex h-20 w-20 items-center justify-center">
         <div
-          class="h-10 w-10 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-500"
+          class="absolute inset-0 animate-ping rounded-full bg-teal-500/20"
         />
-        <p class="text-sm text-slate-500">Chargement du profil…</p>
+        <div
+          class="h-12 w-12 animate-spin rounded-full border-4 border-teal-500/20 border-t-teal-500"
+        />
       </div>
+      <p
+        class="animate-pulse text-sm font-bold uppercase tracking-widest text-slate-500"
+      >
+        Synchronisation du profil...
+      </p>
     </div>
 
-    <!-- Not found -->
+    <!-- Error / Not Found -->
     <div
       v-else-if="error || !profile"
       class="flex min-h-screen items-center justify-center px-4"
     >
-      <div class="space-y-4 text-center">
-        <div class="text-6xl">👻</div>
-        <h1 class="text-2xl font-bold text-slate-200">Profil introuvable</h1>
-        <p class="text-slate-500">Ce profil n'existe pas ou a été supprimé.</p>
+      <div class="max-w-md space-y-8 text-center">
+        <div class="relative mx-auto h-32 w-32">
+          <div
+            class="absolute inset-0 animate-pulse rounded-full bg-rose-500/10 blur-2xl"
+          />
+          <div
+            class="relative flex h-full w-full items-center justify-center text-7xl"
+          >
+            👻
+          </div>
+        </div>
+        <div class="space-y-2">
+          <h1 class="text-3xl font-black text-white">Profil introuvable</h1>
+          <p class="text-slate-500">
+            Le joueur que vous recherchez n'existe pas ou a désactivé son
+            compte.
+          </p>
+        </div>
         <NuxtLink
           to="/"
-          class="inline-block rounded-xl border border-teal-500/25 bg-teal-500/10 px-6 py-2 text-teal-400 transition-colors hover:bg-teal-500/20"
+          class="inline-flex items-center gap-2 rounded-2xl bg-white/5 px-8 py-4 text-sm font-bold text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
         >
-          Retour à l'accueil
+          <UIcon name="i-heroicons-arrow-left" class="h-4 w-4" />
+          RETOUR À L'ACCUEIL
         </NuxtLink>
       </div>
     </div>
 
+    <!-- Main Profile Content -->
     <template v-else>
-      <!-- Hero -->
       <ProfileHeader
         :profile="profile"
         :is-coach="isCoach"
         :min-rate="minRate"
-        :is-own-profile="isOwnProfile"
       />
 
-      <main class="mx-auto max-w-6xl space-y-20 px-4 pb-28">
-        <!-- Games -->
-        <section v-if="profile.games.length" class="space-y-5">
-          <div class="flex items-center gap-4">
-            <div
-              class="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-            />
-            <h2
-              class="text-xs font-bold uppercase tracking-widest text-slate-500"
-            >
-              Univers de jeu
-            </h2>
-            <div
-              class="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-            />
-          </div>
-          <div
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-          >
-            <ProfileGameCard
-              v-for="game in profile.games"
-              :key="game.profileGameRoleId"
-              :game="game"
-            />
-          </div>
-        </section>
-
-        <!-- Per-game coaching sections -->
-        <template v-for="game in coachGames" :key="game.profileGameRoleId">
-          <section
-            v-if="profile.offersByRoleId[game.profileGameRoleId]?.length"
-            class="space-y-8"
-          >
-            <!-- Game section header -->
-            <div class="flex items-center gap-4">
+      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
+        <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
+          <!-- Left Column: Coaching & Content -->
+          <div class="space-y-16">
+            <!-- Coaching Sections (if Coach) -->
+            <div v-if="isCoach" class="space-y-20">
               <div
-                class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-indigo-600 text-lg font-bold text-white"
+                v-for="game in coachGames"
+                :key="game.profileGameRoleId"
+                class="space-y-10"
               >
-                {{ game.gameName.charAt(0) }}
+                <!-- Section Header -->
+                <div class="flex items-center gap-6">
+                  <div
+                    class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
+                  >
+                    {{ game.gameName.charAt(0) }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <h2
+                      class="truncate text-2xl font-black text-white md:text-3xl"
+                    >
+                      Coaching {{ game.gameName }}
+                    </h2>
+                    <p
+                      class="text-sm font-bold uppercase tracking-widest text-teal-500/80"
+                    >
+                      {{
+                        profile.offersByRoleId[game.profileGameRoleId]
+                          ?.length || 0
+                      }}
+                      offre(s) disponible(s)
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Offers Grid -->
+                <div class="grid gap-6 md:grid-cols-2">
+                  <ProfilePricingCard
+                    v-for="offer in profile.offersByRoleId[
+                      game.profileGameRoleId
+                    ] ?? []"
+                    :key="offer.id"
+                    :offer="offer"
+                    :game-name="game.gameName"
+                  />
+                </div>
+
+                <!-- Showcase Videos -->
+                <div
+                  v-if="
+                    getAllVideoUrls(
+                      profile.offersByRoleId[game.profileGameRoleId] ?? [],
+                    ).length
+                  "
+                  class="space-y-6"
+                >
+                  <div class="flex items-center gap-3 text-slate-400">
+                    <UIcon
+                      name="i-heroicons-play-circle"
+                      class="h-5 w-5 text-teal-500"
+                    />
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em]">
+                      Showcase & Replays
+                    </h3>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <ProfileVideoCard
+                      v-for="url in getAllVideoUrls(
+                        profile.offersByRoleId[game.profileGameRoleId] ?? [],
+                      )"
+                      :key="url"
+                      :video-url="url"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <h2 class="text-xl font-bold text-slate-100">
-                  {{ game.gameName }}
-                </h2>
-                <p class="text-sm text-slate-500">
-                  {{
-                    (profile.offersByRoleId[game.profileGameRoleId] ?? [])
-                      .length
-                  }}
-                  offre{{
-                    (profile.offersByRoleId[game.profileGameRoleId] ?? [])
-                      .length > 1
-                      ? "s"
-                      : ""
-                  }}
-                  de coaching
-                </p>
-              </div>
-              <div
-                class="ml-auto hidden h-px flex-1 bg-gradient-to-r from-white/10 to-transparent sm:block"
-              />
             </div>
 
-            <!-- Videos -->
-            <div
-              v-if="
-                getAllVideoUrls(
-                  profile.offersByRoleId[game.profileGameRoleId] ?? [],
-                ).length
-              "
-              class="space-y-4"
-            >
-              <h3
-                class="flex items-center gap-2 text-sm font-semibold text-slate-400"
+            <!-- Empty State for non-coaches -->
+            <div v-else class="py-20 text-center">
+              <div
+                class="mx-auto max-w-sm space-y-6 rounded-3xl border border-white/5 bg-white/[0.02] p-12 backdrop-blur-sm"
               >
                 <UIcon
-                  name="i-heroicons-video-camera"
-                  class="h-4 w-4 text-teal-500"
+                  name="i-heroicons-sparkles"
+                  class="mx-auto h-12 w-12 text-slate-700"
                 />
-                Vidéos de coaching
-              </h3>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-                <ProfileVideoCard
-                  v-for="url in getAllVideoUrls(
-                    profile.offersByRoleId[game.profileGameRoleId] ?? [],
-                  )"
-                  :key="url"
-                  :video-url="url"
-                />
+                <div class="space-y-2">
+                  <p class="text-lg font-bold text-slate-300">
+                    Pas encore de coaching
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    Ce joueur n'a pas encore configuré d'offres de coaching.
+                  </p>
+                </div>
               </div>
             </div>
-
-            <!-- Pricing cards -->
-            <div class="space-y-4">
-              <h3
-                class="flex items-center gap-2 text-sm font-semibold text-slate-400"
-              >
-                <UIcon
-                  name="i-heroicons-banknotes"
-                  class="h-4 w-4 text-teal-500"
-                />
-                Offres de coaching
-              </h3>
-              <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                <ProfilePricingCard
-                  v-for="offer in profile.offersByRoleId[
-                    game.profileGameRoleId
-                  ] ?? []"
-                  :key="offer.id"
-                  :offer="offer"
-                  :game-name="game.gameName"
-                />
-              </div>
-            </div>
-          </section>
-        </template>
-
-        <!-- Empty state — player profile -->
-        <section v-if="!isCoach" class="py-16 text-center">
-          <div
-            class="mx-auto max-w-sm space-y-4 rounded-2xl border border-white/8 bg-white/3 px-8 py-12 backdrop-blur-sm"
-          >
-            <UIcon
-              name="i-heroicons-user-circle"
-              class="mx-auto h-14 w-14 text-slate-700"
-            />
-            <p class="font-semibold text-slate-300">Pas encore de coaching</p>
-            <p class="text-sm text-slate-500">
-              Ce joueur ne propose pas de session de coaching pour l'instant.
-            </p>
           </div>
-        </section>
+
+          <!-- Right Column: Sidebar (Games & Stats) -->
+          <div class="space-y-10">
+            <!-- Games List -->
+            <section class="space-y-6">
+              <div class="flex items-center justify-between">
+                <h3
+                  class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500"
+                >
+                  Univers de jeu
+                </h3>
+                <span
+                  class="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-bold text-slate-400"
+                >
+                  {{ profile.games.length }}
+                </span>
+              </div>
+              <div class="grid gap-3">
+                <ProfileGameCard
+                  v-for="game in profile.games"
+                  :key="game.profileGameRoleId"
+                  :game="game"
+                />
+              </div>
+            </section>
+
+            <!-- Quick Info / Trust Badge -->
+            <div
+              class="rounded-2xl border border-white/5 bg-gradient-to-br from-indigo-500/5 to-teal-500/5 p-6"
+            >
+              <div class="flex items-center gap-3 text-indigo-400">
+                <UIcon name="i-heroicons-shield-check" class="h-5 w-5" />
+                <span class="text-xs font-bold uppercase tracking-wider"
+                  >Paiement Sécurisé</span
+                >
+              </div>
+              <p class="mt-3 text-[11px] leading-relaxed text-slate-500">
+                Toutes les transactions sur CoachMe sont protégées. Le coach
+                n'est payé qu'une fois la session terminée.
+              </p>
+            </div>
+          </div>
+        </div>
       </main>
     </template>
   </div>
 </template>
+
+<style>
+/* Smooth entrance for sections */
+.fade-up-enter-active {
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fade-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+</style>

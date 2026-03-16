@@ -328,6 +328,6 @@ const onSave = async () => {
   }
 };
 
-await loadPreferences();
+onMounted(loadPreferences);
 </script>
 

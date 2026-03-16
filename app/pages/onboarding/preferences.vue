@@ -4,7 +4,7 @@
       title="Préférences de jeux"
       subtitle="Dis-nous à quels jeux tu joues et où tu veux progresser."
     >
-      <GamePreferencesForm />
+      <OnboardingGamePreferencesForm />
     </AuthCard>
   </div>
 </template>

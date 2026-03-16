@@ -1,4 +1,8 @@
-import type { CoachProfile, ProfileFormData, SocialLinks } from "../app/types/profile";
+import type {
+  CoachProfile,
+  ProfileFormData,
+  SocialLinks,
+} from "../types/profile";
 
 const EMPTY_SOCIAL_LINKS: SocialLinks = {
   website: "",
@@ -21,11 +25,15 @@ const toSocialLinks = (value: unknown): SocialLinks => {
 };
 
 export const toProfileFormData = (profile: CoachProfile): ProfileFormData => ({
+  fullName: profile.fullName,
+  avatarUrl: profile.avatarUrl,
   bio: profile.bio,
   socialLinks: { ...profile.socialLinks },
 });
 
 export const profileFormToPayload = (form: ProfileFormData) => ({
+  full_name: form.fullName.trim(),
+  avatar_url: form.avatarUrl.trim(),
   bio: form.bio.trim(),
   social_links: { ...form.socialLinks },
 });
@@ -36,7 +44,7 @@ export const useCoachProfile = () => {
   const getCoachProfile = async (userId: string): Promise<CoachProfile> => {
     const { data, error } = await (client as any)
       .from("profiles")
-      .select("id,bio,social_links")
+      .select("id,full_name,avatar_url,bio,social_links")
       .eq("id", userId)
       .maybeSingle();
 
@@ -45,10 +53,12 @@ export const useCoachProfile = () => {
     }
 
     if (!data) {
-      const { error: createError } = await (client as any).from("profiles").upsert({
-        id: userId,
-        role: "user",
-      });
+      const { error: createError } = await (client as any)
+        .from("profiles")
+        .upsert({
+          id: userId,
+          role: "user",
+        });
 
       if (createError) {
         throw createError;
@@ -56,6 +66,8 @@ export const useCoachProfile = () => {
 
       return {
         id: userId,
+        fullName: "",
+        avatarUrl: "",
         bio: "",
         socialLinks: { ...EMPTY_SOCIAL_LINKS },
       };
@@ -63,6 +75,8 @@ export const useCoachProfile = () => {
 
     return {
       id: data.id,
+      fullName: String(data.full_name ?? ""),
+      avatarUrl: String(data.avatar_url ?? ""),
       bio: String(data.bio ?? ""),
       socialLinks: toSocialLinks(data.social_links),
     };
@@ -80,8 +94,31 @@ export const useCoachProfile = () => {
     }
   };
 
+  const uploadAvatar = async (userId: string, file: File): Promise<string> => {
+    const date = new Date().toISOString().split("T")[0];
+    const fileExt = file.name.split(".").pop();
+    const fileName = `pp/${userId}_${date}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    // 1. Upload du fichier
+    const { data: uploadData, error: uploadError } = await client.storage
+      .from("avatars")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // 2. Récupération de l'URL publique
+    const { data: publicUrlData } = client.storage
+      .from("avatars")
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
+  };
+
   return {
     getCoachProfile,
     updateCoachProfile,
+    uploadAvatar,
   };
 };

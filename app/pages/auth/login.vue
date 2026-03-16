@@ -27,9 +27,6 @@
 </template>
 
 <script setup lang="ts">
-import { useAuth } from "../../../composables/useAuth";
-import { useProfile } from "../../../composables/useProfile";
-
 definePageMeta({ layout: "auth" });
 
 useHead({
@@ -57,7 +54,9 @@ const onSubmit = async () => {
     console.info("[login] signIn success");
 
     const userFromState = useSupabaseUser().value;
-    const user = userFromState?.id ? userFromState : (await client.auth.getUser()).data.user;
+    const user = userFromState?.id
+      ? userFromState
+      : (await client.auth.getUser()).data.user;
     const role = user?.id ? await getUserRole(user.id) : null;
     console.info("[login] profile loaded", {
       userId: user?.id ?? null,
@@ -80,7 +79,9 @@ const onSubmit = async () => {
       .eq("profile_id", user.id);
 
     const hasAnyGame = Boolean(gameRoles?.length);
-    const isCoach = (gameRoles ?? []).some((gameRole: { is_coach: boolean }) => gameRole.is_coach);
+    const isCoach = (gameRoles ?? []).some(
+      (gameRole: { is_coach: boolean }) => gameRole.is_coach,
+    );
     console.info("[login] profile_game_roles loaded", {
       userId: user.id,
       gameRolesCount: gameRoles?.length ?? 0,

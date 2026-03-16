@@ -2,7 +2,9 @@
   <section class="space-y-4">
     <div>
       <h2 class="text-sm font-semibold text-slate-100">Offres de coaching</h2>
-      <p class="mt-1 text-xs text-slate-300/80">Configure une ou plusieurs offres par jeu ou tu coaches.</p>
+      <p class="mt-1 text-xs text-slate-300/80">
+        Configure une ou plusieurs offres par jeu ou tu coaches.
+      </p>
     </div>
 
     <div
@@ -36,7 +38,9 @@
             class="rounded-xl border border-white/10 bg-[#050812]/55 p-3"
           >
             <div class="mb-2 flex items-center justify-between gap-2">
-              <p class="text-[0.7rem] text-slate-200/80">Offre {{ index + 1 }}</p>
+              <p class="text-[0.7rem] text-slate-200/80">
+                Offre {{ index + 1 }}
+              </p>
               <button
                 type="button"
                 class="text-[0.7rem] text-rose-200/85 transition hover:text-rose-100"
@@ -49,34 +53,58 @@
 
             <div class="grid gap-3">
               <div class="space-y-1.5">
-                <label class="text-xs font-medium text-slate-200/90">Tarif horaire (EUR)</label>
+                <label class="text-xs font-medium text-slate-200/90"
+                  >Tarif horaire (EUR)</label
+                >
                 <input
                   :value="offer.hourlyRate ?? ''"
                   type="number"
                   min="0"
                   step="1"
                   class="w-full rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-3 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50"
-                  @input="updateOfferRate(role.gameId, index, ($event.target as HTMLInputElement).value)"
+                  @input="
+                    updateOfferRate(
+                      role.gameId,
+                      index,
+                      ($event.target as HTMLInputElement).value,
+                    )
+                  "
                 />
               </div>
 
               <div class="space-y-1.5">
-                <label class="text-xs font-medium text-slate-200/90">Description</label>
+                <label class="text-xs font-medium text-slate-200/90"
+                  >Description</label
+                >
                 <textarea
                   :value="offer.description"
                   rows="3"
                   class="w-full resize-none rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-3 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50"
-                  @input="updateOfferDescription(role.gameId, index, ($event.target as HTMLTextAreaElement).value)"
+                  @input="
+                    updateOfferDescription(
+                      role.gameId,
+                      index,
+                      ($event.target as HTMLTextAreaElement).value,
+                    )
+                  "
                 />
               </div>
 
               <div class="space-y-1.5">
-                <label class="text-xs font-medium text-slate-200/90">URLs video (une URL par ligne)</label>
+                <label class="text-xs font-medium text-slate-200/90"
+                  >URLs video (une URL par ligne)</label
+                >
                 <textarea
                   :value="offer.videoUrls.join('\n')"
                   rows="3"
                   class="w-full resize-none rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-3 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50"
-                  @input="updateOfferVideos(role.gameId, index, ($event.target as HTMLTextAreaElement).value)"
+                  @input="
+                    updateOfferVideos(
+                      role.gameId,
+                      index,
+                      ($event.target as HTMLTextAreaElement).value,
+                    )
+                  "
                 />
                 <div class="flex items-center gap-2">
                   <label
@@ -88,7 +116,13 @@
                       accept="video/*"
                       class="hidden"
                       :disabled="!userId || isUploading(role.gameId, index)"
-                      @change="uploadOfferVideo(role.gameId, index, ($event.target as HTMLInputElement).files)"
+                      @change="
+                        uploadOfferVideo(
+                          role.gameId,
+                          index,
+                          ($event.target as HTMLInputElement).files,
+                        )
+                      "
                     />
                     <span v-if="isUploading(role.gameId, index)">Upload…</span>
                     <span v-else>Uploader une vidéo</span>
@@ -97,17 +131,28 @@
                     Stockée dans `coach-videos`, URL ajoutée automatiquement.
                   </span>
                 </div>
-                <p v-if="uploadErrors[uploadKey(role.gameId, index)]" class="text-[0.7rem] text-rose-200/90">
+                <p
+                  v-if="uploadErrors[uploadKey(role.gameId, index)]"
+                  class="text-[0.7rem] text-rose-200/90"
+                >
                   {{ uploadErrors[uploadKey(role.gameId, index)] }}
                 </p>
               </div>
 
-              <label class="inline-flex items-center gap-2 text-xs text-slate-200/85">
+              <label
+                class="inline-flex items-center gap-2 text-xs text-slate-200/85"
+              >
                 <input
                   :checked="offer.isActive"
                   type="checkbox"
                   class="h-4 w-4 rounded border-white/20 bg-[#0b0f19]/45 text-[#14b8a6] focus:ring-[#14b8a6]/35"
-                  @change="updateOfferActive(role.gameId, index, ($event.target as HTMLInputElement).checked)"
+                  @change="
+                    updateOfferActive(
+                      role.gameId,
+                      index,
+                      ($event.target as HTMLInputElement).checked,
+                    )
+                  "
                 />
                 Offre active
               </label>
@@ -117,12 +162,18 @@
       </div>
     </div>
 
-    <p v-if="errors?.offers" class="text-[0.7rem] text-rose-200/90">{{ errors.offers }}</p>
+    <p v-if="errors?.offers" class="text-[0.7rem] text-rose-200/90">
+      {{ errors.offers }}
+    </p>
   </section>
 </template>
 
 <script setup lang="ts">
-import type { CoachGameRole, CoachingOffer, ProfileFieldErrors } from "../types/profile";
+import type {
+  CoachGameRole,
+  CoachingOffer,
+  ProfileFieldErrors,
+} from "../types/profile";
 
 const props = withDefaults(
   defineProps<{
@@ -139,7 +190,9 @@ const emit = defineEmits<{
 }>();
 
 const client = useSupabaseClient();
-const coachRoles = computed(() => props.modelValue.filter((role) => role.selected && role.isCoach));
+const coachRoles = computed(() =>
+  props.modelValue.filter((role) => role.selected && role.isCoach),
+);
 const uploadStates = ref<Record<string, boolean>>({});
 const uploadErrors = ref<Record<string, string>>({});
 
@@ -150,7 +203,10 @@ const newOffer = (): CoachingOffer => ({
   isActive: true,
 });
 
-const updateRoleOffers = (gameId: string, updater: (offers: CoachingOffer[]) => CoachingOffer[]) => {
+const updateRoleOffers = (
+  gameId: string,
+  updater: (offers: CoachingOffer[]) => CoachingOffer[],
+) => {
   const next = props.modelValue.map((role) =>
     role.gameId === gameId
       ? {
@@ -164,7 +220,8 @@ const updateRoleOffers = (gameId: string, updater: (offers: CoachingOffer[]) => 
 };
 
 const uploadKey = (gameId: string, index: number) => `${gameId}:${index}`;
-const isUploading = (gameId: string, index: number) => Boolean(uploadStates.value[uploadKey(gameId, index)]);
+const isUploading = (gameId: string, index: number) =>
+  Boolean(uploadStates.value[uploadKey(gameId, index)]);
 
 const sanitizeFileName = (name: string): string =>
   name
@@ -174,7 +231,11 @@ const sanitizeFileName = (name: string): string =>
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
-const uploadOfferVideo = async (gameId: string, index: number, files: FileList | null) => {
+const uploadOfferVideo = async (
+  gameId: string,
+  index: number,
+  files: FileList | null,
+) => {
   const key = uploadKey(gameId, index);
   uploadErrors.value[key] = "";
 
@@ -199,7 +260,9 @@ const uploadOfferVideo = async (gameId: string, index: number, files: FileList |
       throw uploadError;
     }
 
-    const { data: publicData } = (client as any).storage.from("coach-videos").getPublicUrl(objectPath);
+    const { data: publicData } = (client as any).storage
+      .from("coach-videos")
+      .getPublicUrl(objectPath);
     const publicUrl = String(publicData?.publicUrl ?? "").trim();
     if (!publicUrl) {
       throw new Error("URL publique introuvable après upload.");
@@ -210,7 +273,9 @@ const uploadOfferVideo = async (gameId: string, index: number, files: FileList |
         offerIndex === index
           ? {
               ...offer,
-              videoUrls: Array.from(new Set([...(offer.videoUrls ?? []), publicUrl])),
+              videoUrls: Array.from(
+                new Set([...(offer.videoUrls ?? []), publicUrl]),
+              ),
             }
           : offer,
       ),
@@ -230,7 +295,9 @@ const addOffer = (gameId: string) => {
 };
 
 const removeOffer = (gameId: string, index: number) => {
-  updateRoleOffers(gameId, (offers) => (offers.length <= 1 ? offers : offers.filter((_, i) => i !== index)));
+  updateRoleOffers(gameId, (offers) =>
+    offers.length <= 1 ? offers : offers.filter((_, i) => i !== index),
+  );
 };
 
 const updateOfferRate = (gameId: string, index: number, value: string) => {
@@ -246,9 +313,15 @@ const updateOfferRate = (gameId: string, index: number, value: string) => {
   );
 };
 
-const updateOfferDescription = (gameId: string, index: number, value: string) => {
+const updateOfferDescription = (
+  gameId: string,
+  index: number,
+  value: string,
+) => {
   updateRoleOffers(gameId, (offers) =>
-    offers.map((offer, i) => (i === index ? { ...offer, description: value } : offer)),
+    offers.map((offer, i) =>
+      i === index ? { ...offer, description: value } : offer,
+    ),
   );
 };
 
@@ -268,7 +341,11 @@ const updateOfferVideos = (gameId: string, index: number, value: string) => {
   );
 };
 
-const updateOfferActive = (gameId: string, index: number, isActive: boolean) => {
+const updateOfferActive = (
+  gameId: string,
+  index: number,
+  isActive: boolean,
+) => {
   updateRoleOffers(gameId, (offers) =>
     offers.map((offer, i) => (i === index ? { ...offer, isActive } : offer)),
   );

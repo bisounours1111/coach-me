@@ -1,47 +1,49 @@
-import { useProfile } from "../../composables/useProfile";
-
 export default defineNuxtRouteMiddleware(async () => {
   const user = useSupabaseUser();
   const client = useSupabaseClient();
   const { getUserRole } = useProfile();
-  const resolvedUser = user.value?.id ? user.value : (await client.auth.getUser()).data.user;
 
-  if (!resolvedUser?.id) {
-    console.warn("[coach-only middleware] no user session");
-    return abortNavigation(
-      createError({
-        statusCode: 401,
-        statusMessage: "Connecte toi",
-        message: "Connecte toi",
-      }),
-    );
+  console.log("[Middleware:coach-only] Vérification d'accès pour:", useRoute().path);
+
+  // 1. Récupération robuste de l'ID (SSR friendly)
+  let userId = user.value?.id;
+  if (!userId) {
+    const { data } = await client.auth.getUser();
+    userId = data.user?.id;
   }
 
-  const role = await getUserRole(resolvedUser.id);
+  if (!userId) {
+    console.log("[Middleware:coach-only] Aucun utilisateur trouvé, redirection vers login");
+    return navigateTo("/auth/login");
+  }
 
+  // 2. Vérification du rôle global
+  const role = await getUserRole(userId);
+  console.log("[Middleware:coach-only] Rôle détecté:", role);
+  
+  if (role === "maintainer" || role === "coach") {
+    console.log("[Middleware:coach-only] Accès AUTORISÉ (rôle)");
+    return;
+  }
+
+  // 3. Vérification des rôles par jeu (fallback)
   const { data: gameRoles } = await (client as any)
     .from("profile_game_roles")
     .select("is_coach")
-    .eq("profile_id", resolvedUser.id);
+    .eq("profile_id", userId);
 
-  const hasAnyGame = Boolean(gameRoles?.length);
   const isCoach = (gameRoles ?? []).some((gameRole: { is_coach: boolean }) => gameRole.is_coach);
-  console.info("[coach-only middleware] profile_game_roles loaded", {
-    userId: resolvedUser.id,
-    profileRole: role,
-    gameRolesCount: gameRoles?.length ?? 0,
-    hasAnyGame,
-    isCoach,
-  });
+  console.log("[Middleware:coach-only] Coach via jeux:", isCoach);
 
-  if (!isCoach && role !== "maintainer") {
-    return abortNavigation(
-      createError({
-        statusCode: 403,
-        statusMessage: "Permissions insuffisantes",
-        message: "Permissions insuffisantes: cette page est réservée aux coachs.",
-      }),
-    );
+  if (isCoach) {
+    console.log("[Middleware:coach-only] Accès AUTORISÉ (jeux)");
+    return;
   }
-});
 
+  // 4. Refus d'accès
+  console.log("[Middleware:coach-only] Accès REFUSÉ, redirection...");
+  if (role === "student") {
+    return navigateTo("/dashboard/student");
+  }
+  return navigateTo("/");
+});

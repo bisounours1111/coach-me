@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PublicProfileGame } from "../../composables/usePublicProfile";
-
 const props = defineProps<{
   game: PublicProfileGame;
 }>();

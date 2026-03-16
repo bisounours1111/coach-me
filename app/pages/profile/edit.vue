@@ -17,9 +17,16 @@
         Chargement…
       </div>
 
-      <div v-else class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-6 backdrop-blur">
+      <div
+        v-else
+        class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-6 backdrop-blur"
+      >
         <form class="space-y-6" @submit.prevent="onSave">
-          <CoachProfileForm v-model="profileForm" :errors="fieldErrors" @validate="onValidate" />
+          <CoachProfileForm
+            v-model="profileForm"
+            :errors="fieldErrors"
+            @validate="onValidate"
+          />
 
           <CoachGamesForm
             v-model="gameRoles"
@@ -72,10 +79,17 @@
 </template>
 
 <script setup lang="ts">
-import type { CoachGameRole, GameRankOption, ProfileFieldErrors, ProfileFormData } from "../../../types/profile";
-import { validateUrl } from "../../../../utils/validation";
-import { toProfileFormData, useCoachProfile } from "../../../../composables/useCoachProfile";
-import { useCoachGames } from "../../../../composables/useCoachGames";
+import type {
+  CoachGameRole,
+  GameRankOption,
+  ProfileFieldErrors,
+  ProfileFormData,
+} from "../../types/profile";
+import { validateUrl } from "../../utils/validation";
+import {
+  toProfileFormData,
+  useCoachProfile,
+} from "../../composables/useCoachProfile";
 
 definePageMeta({
   middleware: ["coach-only"],
@@ -89,7 +103,12 @@ const user = useSupabaseUser();
 const client = useSupabaseClient();
 
 const { getCoachProfile, updateCoachProfile } = useCoachProfile();
-const { getAvailableGames, getGameRanks, getCoachGameRoles, upsertCoachGameRoles } = useCoachGames();
+const {
+  getAvailableGames,
+  getGameRanks,
+  getCoachGameRoles,
+  upsertCoachGameRoles,
+} = useCoachGames();
 
 const loading = ref(true);
 const saving = ref(false);
@@ -97,7 +116,9 @@ const loadError = ref<string | null>(null);
 const saveError = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const fieldErrors = ref<ProfileFieldErrors>({});
-const availableGames = ref<Array<{ id: string; slug: string; name: string }>>([]);
+const availableGames = ref<Array<{ id: string; slug: string; name: string }>>(
+  [],
+);
 const gameRanksByGameId = ref<Record<string, GameRankOption[]>>({});
 const activeUserId = ref<string | null>(null);
 
@@ -123,7 +144,9 @@ const hydrateRoles = (
   games: Array<{ id: string; name: string }>,
   existingRoles: CoachGameRole[],
 ): CoachGameRole[] => {
-  const existingByGameId = new Map(existingRoles.map((role) => [role.gameId, role]));
+  const existingByGameId = new Map(
+    existingRoles.map((role) => [role.gameId, role]),
+  );
 
   return games.map((game) => {
     const existing = existingByGameId.get(game.id);
@@ -180,19 +203,26 @@ const validateForm = (): boolean => {
     }
 
     for (const offer of role.offers) {
-      if (offer.hourlyRate === null || Number.isNaN(Number(offer.hourlyRate)) || Number(offer.hourlyRate) <= 0) {
-        errors.offers = "Chaque offre doit avoir un tarif horaire strictement positif.";
+      if (
+        offer.hourlyRate === null ||
+        Number.isNaN(Number(offer.hourlyRate)) ||
+        Number(offer.hourlyRate) <= 0
+      ) {
+        errors.offers =
+          "Chaque offre doit avoir un tarif horaire strictement positif.";
         break;
       }
 
       if (offer.description.trim().length > 1200) {
-        errors.offers = "La description d’une offre ne doit pas dépasser 1200 caractères.";
+        errors.offers =
+          "La description d’une offre ne doit pas dépasser 1200 caractères.";
         break;
       }
 
       for (const url of offer.videoUrls) {
         if (!validateUrl(url)) {
-          errors.offers = "Toutes les URLs vidéo des offres doivent être valides.";
+          errors.offers =
+            "Toutes les URLs vidéo des offres doivent être valides.";
           break;
         }
       }
@@ -275,7 +305,8 @@ const onSave = async () => {
 
   const id = activeUserId.value ?? (await resolveUserId());
   if (!id) {
-    saveError.value = "Impossible d'enregistrer: session utilisateur introuvable.";
+    saveError.value =
+      "Impossible d'enregistrer: session utilisateur introuvable.";
     return;
   }
   activeUserId.value = id;
@@ -299,7 +330,10 @@ const onSave = async () => {
     );
 
     // Rehydrate from persisted values to keep IDs and normalized values in sync.
-    const [savedProfile, savedRoles] = await Promise.all([getCoachProfile(id), getCoachGameRoles(id)]);
+    const [savedProfile, savedRoles] = await Promise.all([
+      getCoachProfile(id),
+      getCoachGameRoles(id),
+    ]);
     profileForm.value = toProfileFormData(savedProfile);
     gameRoles.value = hydrateRoles(availableGames.value, savedRoles);
     successMessage.value = "Profil et offres mis à jour.";

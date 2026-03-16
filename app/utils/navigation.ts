@@ -1,22 +1,24 @@
 import type { Router } from "vue-router";
 import type { UserRole } from "../types/auth";
 
-export const redirectByRole = async (router: Router, role: UserRole | null | undefined) => {
-  if (!role) {
+export const redirectByRole = async (
+  router: Router,
+  userRole: UserRole | null | undefined,
+) => {
+  if (!userRole) {
     await router.push("/onboarding/preferences");
     return;
   }
 
-  if (role === "maintainer") {
+  if (userRole === "maintainer") {
     await router.push("/dashboard/admin");
     return;
   }
 
-  if (role === "coach") {
+  if (userRole === "coach") {
     await router.push("/dashboard/coach");
     return;
   }
 
   await router.push("/dashboard/student");
 };
-

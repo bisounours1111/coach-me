@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PublicProfileView } from "../../composables/usePublicProfile";
-
 const props = defineProps<{
   profile: PublicProfileView;
   isCoach: boolean;

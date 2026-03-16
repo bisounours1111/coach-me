@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PublicCoachingOffer } from "../../composables/usePublicProfile";
-
 const props = defineProps<{
   offer: PublicCoachingOffer;
   gameName: string;

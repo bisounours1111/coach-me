@@ -1,4 +1,8 @@
-import type { CoachProfile, ProfileFormData, SocialLinks } from "../app/types/profile";
+import type {
+  CoachProfile,
+  ProfileFormData,
+  SocialLinks,
+} from "../types/profile";
 
 const EMPTY_SOCIAL_LINKS: SocialLinks = {
   website: "",
@@ -45,10 +49,12 @@ export const useCoachProfile = () => {
     }
 
     if (!data) {
-      const { error: createError } = await (client as any).from("profiles").upsert({
-        id: userId,
-        role: "user",
-      });
+      const { error: createError } = await (client as any)
+        .from("profiles")
+        .upsert({
+          id: userId,
+          role: "user",
+        });
 
       if (createError) {
         throw createError;

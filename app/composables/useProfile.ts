@@ -9,7 +9,11 @@ export const useProfile = () => {
       return null;
     }
 
-    const { data, error } = await client.from("profiles").select("*").eq("id", userId).single();
+    const { data, error } = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
     if (error) {
       console.error("[useProfile] failed to load profile", {
@@ -32,7 +36,7 @@ export const useProfile = () => {
     role: UserRole,
     data?: Partial<Omit<Profile, "id" | "role">>,
   ) => {
-    await client.from("profiles").upsert({
+    await (client as any).from("profiles").upsert({
       id: userId,
       role,
       ...data,
@@ -45,4 +49,3 @@ export const useProfile = () => {
     createProfile,
   };
 };
-

@@ -1,19 +1,34 @@
-import type { Profile, UserRole } from "~/types/auth";
+import type { Profile, UserRole } from "../types/auth";
 
 export const useProfile = () => {
   const client = useSupabaseClient();
+  const user = useSupabaseUser();
 
-  const getUserProfile = async (userId: string): Promise<Profile | null> => {
-    if (!userId) {
-      console.warn("[useProfile] missing userId, skip profile query");
+  const getUserProfile = async (userId?: string): Promise<Profile | null> => {
+    // Récupération de l'ID (paramètre > session Nuxt > session Supabase directe)
+    let id = userId || user.value?.id;
+
+    if (!id) {
+      const { data } = await client.auth.getUser();
+      id = data.user?.id;
+    }
+
+    if (!id) {
+      console.warn(
+        "[useProfile] Impossible de récupérer un ID utilisateur (session manquante)",
+      );
       return null;
     }
 
-    const { data, error } = await client.from("profiles").select("*").eq("id", userId).single();
+    const { data, error } = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
     if (error) {
-      console.error("[useProfile] failed to load profile", {
-        userId,
+      console.error("[useProfile] Erreur lors du chargement du profil:", {
+        id,
         error,
       });
       return null;
@@ -22,7 +37,7 @@ export const useProfile = () => {
     return data as Profile;
   };
 
-  const getUserRole = async (userId: string): Promise<UserRole | null> => {
+  const getUserRole = async (userId?: string): Promise<UserRole | null> => {
     const profile = await getUserProfile(userId);
     return profile?.role ?? null;
   };
@@ -32,7 +47,7 @@ export const useProfile = () => {
     role: UserRole,
     data?: Partial<Omit<Profile, "id" | "role">>,
   ) => {
-    await client.from("profiles").upsert({
+    await (client as any).from("profiles").upsert({
       id: userId,
       role,
       ...data,

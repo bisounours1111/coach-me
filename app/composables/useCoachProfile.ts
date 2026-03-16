@@ -1,238 +1,124 @@
-import type { CoachProfile, ProfileFieldErrors, ProfileFormData } from "~/types/profile";
-import { validateBio, validateGames, validateUrl } from "~/utils/validation";
+import type {
+  CoachProfile,
+  ProfileFormData,
+  SocialLinks,
+} from "../types/profile";
 
-const emptyFormData = (): ProfileFormData => ({
-  games: [{ name: "", rank: "" }],
-  bio: "",
-  videoUrl: "",
-  contact: {},
-});
+const EMPTY_SOCIAL_LINKS: SocialLinks = {
+  website: "",
+  youtube: "",
+  twitch: "",
+  twitter: "",
+  discord: "",
+};
 
-const trimOrEmpty = (value: string | null | undefined) => (value ?? "").trim();
-const slugify = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-
-const toFormData = (profile: CoachProfile | null): ProfileFormData => {
-  const games = (profile?.games ?? []).map((name) => ({
-    name,
-    rank: trimOrEmpty(profile?.ranks?.[name]),
-  }));
-
+const toSocialLinks = (value: unknown): SocialLinks => {
+  if (!value || typeof value !== "object") return { ...EMPTY_SOCIAL_LINKS };
+  const links = value as Record<string, unknown>;
   return {
-    games: games.length ? games : [{ name: "", rank: "" }],
-    bio: trimOrEmpty(profile?.bio),
-    videoUrl: trimOrEmpty(profile?.video_urls?.[0]),
-    contact: profile?.social_links ?? {},
+    website: String(links.website ?? "").trim(),
+    youtube: String(links.youtube ?? "").trim(),
+    twitch: String(links.twitch ?? "").trim(),
+    twitter: String(links.twitter ?? "").trim(),
+    discord: String(links.discord ?? "").trim(),
   };
 };
 
-const toDbUpdate = (data: ProfileFormData, selectedGameNames: string[]) => {
-  const cleanedGames = data.games
-    .map((g) => ({ name: g.name.trim(), rank: g.rank.trim() }))
-    .filter((g) => g.name.length > 0);
+export const toProfileFormData = (profile: CoachProfile): ProfileFormData => ({
+  fullName: profile.fullName,
+  avatarUrl: profile.avatarUrl,
+  bio: profile.bio,
+  socialLinks: { ...profile.socialLinks },
+});
 
-  const games = cleanedGames.map((g) => g.name);
-  const ranks = cleanedGames.reduce<Record<string, string>>((acc, g) => {
-    if (g.rank) acc[g.name] = g.rank;
-    return acc;
-  }, {});
-
-  const video_urls = data.videoUrl.trim() ? [data.videoUrl.trim()] : [];
-
-  const social_links = Object.fromEntries(
-    Object.entries(data.contact ?? {}).filter(([, v]) => (v ?? "").trim().length > 0),
-  );
-
-  return {
-    bio: data.bio.trim(),
-    games,
-    ranks,
-    video_urls,
-    social_links,
-  } as const;
-};
+export const profileFormToPayload = (form: ProfileFormData) => ({
+  full_name: form.fullName.trim(),
+  avatar_url: form.avatarUrl.trim(),
+  bio: form.bio.trim(),
+  social_links: { ...form.socialLinks },
+});
 
 export const useCoachProfile = () => {
   const client = useSupabaseClient();
 
-  const loading = ref(false);
-  const saving = ref(false);
-
-  const loadError = ref<string | null>(null);
-  const saveError = ref<string | null>(null);
-  const successMessage = ref<string | null>(null);
-
-  const formData = ref<ProfileFormData>(emptyFormData());
-  const fieldErrors = ref<ProfileFieldErrors>({});
-
-  const getCoachProfile = async (userId: string): Promise<CoachProfile | null> => {
-    const { data, error } = await client
+  const getCoachProfile = async (userId: string): Promise<CoachProfile> => {
+    const { data, error } = await (client as any)
       .from("profiles")
-      .select("id, bio, games, ranks, social_links, video_urls")
+      .select("id,full_name,avatar_url,bio,social_links")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
 
-    if (error) return null;
-    return data as CoachProfile;
-  };
-
-  const validateProfileData = (data: ProfileFormData) => {
-    const nextErrors: ProfileFieldErrors = {};
-
-    const gamesRes = validateGames(data.games);
-    if (!gamesRes.ok) nextErrors.games = gamesRes.message ?? "Jeux invalides.";
-
-    const bioRes = validateBio(data.bio);
-    if (!bioRes.ok) nextErrors.bio = bioRes.message ?? "Bio invalide.";
-
-    if (!validateUrl(data.videoUrl)) {
-      nextErrors.videoUrl = "URL invalide (http/https).";
+    if (error) {
+      throw error;
     }
 
-    const contactEntries = Object.entries(data.contact ?? {});
-    for (const [key, raw] of contactEntries) {
-      const value = (raw ?? "").trim();
-      if (!value) continue;
-      if (!validateUrl(value)) {
-        const typedKey = key as keyof ProfileFormData["contact"];
-        nextErrors[`contact.${typedKey}`] = "URL invalide (http/https).";
+    if (!data) {
+      const { error: createError } = await (client as any)
+        .from("profiles")
+        .upsert({
+          id: userId,
+          role: "user",
+        });
+
+      if (createError) {
+        throw createError;
       }
+
+      return {
+        id: userId,
+        fullName: "",
+        avatarUrl: "",
+        bio: "",
+        socialLinks: { ...EMPTY_SOCIAL_LINKS },
+      };
     }
 
-    fieldErrors.value = nextErrors;
-    return { ok: Object.keys(nextErrors).length === 0, errors: nextErrors };
-  };
-
-  const load = async (userId: string) => {
-    if (loading.value) return;
-    loading.value = true;
-    loadError.value = null;
-    saveError.value = null;
-    successMessage.value = null;
-
-    try {
-      const profile = await getCoachProfile(userId);
-      formData.value = toFormData(profile);
-      fieldErrors.value = {};
-    } catch (e: any) {
-      loadError.value =
-        e?.message || "Impossible de charger ton profil pour le moment.";
-    } finally {
-      loading.value = false;
-    }
+    return {
+      id: data.id,
+      fullName: String(data.full_name ?? ""),
+      avatarUrl: String(data.avatar_url ?? ""),
+      bio: String(data.bio ?? ""),
+      socialLinks: toSocialLinks(data.social_links),
+    };
   };
 
   const updateCoachProfile = async (userId: string, data: ProfileFormData) => {
-    const validation = validateProfileData(data);
-    if (!validation.ok) {
-      saveError.value = "Corrige les champs en erreur avant de sauvegarder.";
-      return { ok: false as const };
-    }
+    const payload = profileFormToPayload(data);
+    const { error } = await (client as any).from("profiles").upsert({
+      id: userId,
+      ...payload,
+    });
 
-    if (saving.value) return { ok: false as const };
-    saving.value = true;
-    saveError.value = null;
-    successMessage.value = null;
-
-    try {
-      const cleanedGames = data.games
-        .map((g) => ({ name: g.name.trim(), rank: g.rank.trim() }))
-        .filter((g) => g.name.length > 0);
-
-      const selectedGameNames = cleanedGames.map((g) => g.name);
-      const gameRows = selectedGameNames.map((name) => ({ slug: slugify(name), name }));
-
-      if (gameRows.length) {
-        const { error: gameUpsertError } = await client
-          .from("games")
-          .upsert(gameRows, { onConflict: "slug" });
-        if (gameUpsertError) throw gameUpsertError;
-      }
-
-      let selectedGameIds: string[] = [];
-      if (selectedGameNames.length) {
-        const { data: dbGames, error: gamesFetchError } = await client
-          .from("games")
-          .select("id, name")
-          .in("name", selectedGameNames);
-        if (gamesFetchError) throw gamesFetchError;
-        selectedGameIds = (dbGames ?? []).map((g: { id: string }) => g.id);
-
-        const rankByGameName = cleanedGames.reduce<Record<string, string>>((acc, g) => {
-          if (g.rank) acc[g.name] = g.rank;
-          return acc;
-        }, {});
-
-        const relations = (dbGames ?? []).map((g: { id: string; name: string }) => ({
-          profile_id: userId,
-          game_id: g.id,
-          is_coach: true,
-          player_rank: rankByGameName[g.name] ?? null,
-        }));
-
-        const { error: roleUpsertError } = await client
-          .from("profile_game_roles")
-          .upsert(relations, { onConflict: "profile_id,game_id" });
-        if (roleUpsertError) throw roleUpsertError;
-      }
-
-      const { data: existingCoachLinks, error: existingLinksError } = await client
-        .from("profile_game_roles")
-        .select("id, game_id")
-        .eq("profile_id", userId)
-        .eq("is_coach", true);
-      if (existingLinksError) throw existingLinksError;
-
-      const toDelete = (existingCoachLinks ?? [])
-        .filter((row: { game_id: string }) => !selectedGameIds.includes(row.game_id))
-        .map((row: { id: string }) => row.id);
-
-      if (toDelete.length) {
-        const { error: deleteError } = await client
-          .from("profile_game_roles")
-          .delete()
-          .in("id", toDelete);
-        if (deleteError) throw deleteError;
-      }
-
-      const payload = toDbUpdate(data, selectedGameNames);
-      const { error } = await client.from("profiles").update(payload).eq("id", userId);
-      if (error) throw error;
-
-      successMessage.value = "Profil mis à jour.";
-      return { ok: true as const };
-    } catch (e: any) {
-      saveError.value = e?.message || "Impossible d'enregistrer. Réessaie plus tard.";
-      return { ok: false as const };
-    } finally {
-      saving.value = false;
+    if (error) {
+      throw error;
     }
   };
 
-  const clearMessages = () => {
-    loadError.value = null;
-    saveError.value = null;
-    successMessage.value = null;
+  const uploadAvatar = async (userId: string, file: File): Promise<string> => {
+    const date = new Date().toISOString().split("T")[0];
+    const fileExt = file.name.split(".").pop();
+    const fileName = `pp/${userId}_${date}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    // 1. Upload du fichier
+    const { data: uploadData, error: uploadError } = await client.storage
+      .from("avatars")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // 2. Récupération de l'URL publique
+    const { data: publicUrlData } = client.storage
+      .from("avatars")
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
   };
 
   return {
-    loading,
-    saving,
-    loadError,
-    saveError,
-    successMessage,
-    formData,
-    fieldErrors,
     getCoachProfile,
-    validateProfileData,
-    load,
     updateCoachProfile,
-    clearMessages,
+    uploadAvatar,
   };
 };

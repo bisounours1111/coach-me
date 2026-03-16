@@ -1,9 +1,20 @@
 <script setup lang="ts">
 const route = useRoute();
+const user = useSupabaseUser();
 const { getPublicProfile } = usePublicProfile();
 
 type ProfileData = Awaited<ReturnType<typeof getPublicProfile>>;
 type CoachingOfferList = NonNullable<ProfileData>["offersByRoleId"][string];
+
+const isOwnProfile = computed(() => {
+  const match = user.value?.id === route.params.id;
+  console.log("[ProfilePage] Checking isOwnProfile:", {
+    userId: user.value?.id,
+    routeId: route.params.id,
+    match
+  });
+  return match;
+});
 
 const {
   data: profile,
@@ -65,10 +76,11 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
     <template v-else>
       <!-- Hero -->
-      <ProfileProfileHeader
+      <ProfileHeader
         :profile="profile"
         :is-coach="isCoach"
         :min-rate="minRate"
+        :is-own-profile="isOwnProfile"
       />
 
       <main class="mx-auto max-w-6xl space-y-20 px-4 pb-28">

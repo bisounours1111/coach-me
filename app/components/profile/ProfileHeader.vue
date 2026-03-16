@@ -3,17 +3,30 @@ const props = defineProps<{
   profile: PublicProfileView;
   isCoach: boolean;
   minRate: number | null;
+  isOwnProfile?: boolean;
 }>();
 
 const socialConfig: Record<
   string,
-  { label: string; color: string; abbr: string }
+  { label: string; icon: string; color: string }
 > = {
-  youtube: { label: "YouTube", color: "#FF0000", abbr: "YT" },
-  twitch: { label: "Twitch", color: "#9146FF", abbr: "Tv" },
-  twitter: { label: "X / Twitter", color: "#e2e8f0", abbr: "X" },
-  discord: { label: "Discord", color: "#5865F2", abbr: "DC" },
-  website: { label: "Site web", color: "#14b8a6", abbr: "🌐" },
+  youtube: {
+    label: "YouTube",
+    icon: "i-simple-icons-youtube",
+    color: "#FF0000",
+  },
+  twitch: { label: "Twitch", icon: "i-simple-icons-twitch", color: "#9146FF" },
+  twitter: { label: "X / Twitter", icon: "i-simple-icons-x", color: "#e2e8f0" },
+  discord: {
+    label: "Discord",
+    icon: "i-simple-icons-discord",
+    color: "#5865F2",
+  },
+  website: {
+    label: "Site web",
+    icon: "i-heroicons-globe-alt",
+    color: "#14b8a6",
+  },
 };
 
 const activeSocials = computed(() =>
@@ -24,8 +37,8 @@ const activeSocials = computed(() =>
       url,
       ...(socialConfig[key] ?? {
         label: key,
+        icon: "i-heroicons-link",
         color: "#94a3b8",
-        abbr: key.slice(0, 2).toUpperCase(),
       }),
     })),
 );
@@ -33,6 +46,11 @@ const activeSocials = computed(() =>
 const coachGamesCount = computed(
   () => props.profile.games.filter((g) => g.isCoach).length,
 );
+
+onMounted(() => {
+  console.log("[ProfileHeader] isOwnProfile:", props.isOwnProfile);
+  console.log("[ProfileHeader] profile.id:", props.profile.id);
+});
 </script>
 
 <template>
@@ -186,13 +204,23 @@ const coachGamesCount = computed(
             </div>
 
             <!-- Socials -->
-            <div v-if="activeSocials.length" class="space-y-3">
-              <p
-                class="text-xs font-bold uppercase tracking-widest text-slate-600"
-              >
-                Retrouve-moi sur
-              </p>
-              <div class="flex flex-wrap gap-2">
+            <div v-if="activeSocials.length || isOwnProfile" class="space-y-3">
+              <div class="flex items-center justify-between gap-4">
+                <p
+                  class="text-xs font-bold uppercase tracking-widest text-slate-600"
+                >
+                  {{ activeSocials.length ? 'Retrouve-moi sur' : '' }}
+                </p>
+                <NuxtLink
+                  v-if="isOwnProfile"
+                  to="/profile/edit"
+                  class="inline-flex items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-bold text-teal-400 transition-all hover:border-teal-500/50 hover:bg-teal-500/20"
+                >
+                  <UIcon name="i-heroicons-pencil-square" class="h-4 w-4" />
+                  Modifier mon profil
+                </NuxtLink>
+              </div>
+              <div v-if="activeSocials.length" class="flex flex-wrap gap-2">
                 <a
                   v-for="social in activeSocials"
                   :key="social.key"
@@ -202,9 +230,11 @@ const coachGamesCount = computed(
                   :title="social.label"
                   class="group flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-xs font-bold text-slate-400 transition-all duration-200 hover:-translate-y-px hover:scale-105 hover:border-white/20 hover:bg-white/10"
                 >
-                  <span :style="{ color: social.color }">{{
-                    social.abbr
-                  }}</span>
+                  <UIcon
+                    :name="social.icon"
+                    class="h-4 w-4 transition-colors"
+                    :style="{ color: social.color }"
+                  />
                   <span
                     class="text-slate-500 group-hover:text-slate-300 transition-colors"
                     >{{ social.label }}</span

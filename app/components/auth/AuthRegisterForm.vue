@@ -1,6 +1,37 @@
 <template>
   <div>
     <form class="space-y-4" @submit.prevent="onSubmit">
+      <div class="space-y-1.5">
+        <p class="text-xs font-medium text-slate-200/90">Je suis</p>
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="rounded-xl border bg-[#0b0f19]/45 p-4 text-left text-sm backdrop-blur transition"
+            :class="role === 'student'
+              ? 'border-[#14b8a6]/55 shadow-[0_0_0_4px_rgba(20,184,166,0.10)]'
+              : 'border-white/10 hover:border-white/20'"
+            @click="role = 'student'"
+          >
+            <p class="font-semibold text-slate-50">Élève</p>
+            <p class="mt-1 text-[0.7rem] text-slate-200/60">
+              Pour être coaché et suivre tes progrès.
+            </p>
+          </button>
+          <button
+            type="button"
+            class="rounded-xl border bg-[#0b0f19]/45 p-4 text-left text-sm backdrop-blur transition"
+            :class="role === 'coach'
+              ? 'border-[#6366f1]/55 shadow-[0_0_0_4px_rgba(99,102,241,0.10)]'
+              : 'border-white/10 hover:border-white/20'"
+            @click="role = 'coach'"
+          >
+            <p class="font-semibold text-slate-50">Coach</p>
+            <p class="mt-1 text-[0.7rem] text-slate-200/60">
+              Pour accompagner des joueurs sur leurs jeux.
+            </p>
+          </button>
+        </div>
+      </div>
       <AuthTextField
         v-model="email"
         id="register-email"
@@ -51,50 +82,41 @@
 </template>
 
 <script setup lang="ts">
-const client = useSupabaseClient();
+import { useAuth } from "../../../composables/useAuth";
+
 const router = useRouter();
+const { signUp, loading, error } = useAuth();
 
 const email = ref("");
 const password = ref("");
 const passwordConfirm = ref("");
+const role = ref<"student" | "coach">("student");
 
-const loading = ref(false);
-const errorMessage = ref<string | null>(null);
+const errorMessage = computed(() => error.value);
 const successMessage = ref<string | null>(null);
 
 const onSubmit = async () => {
   if (loading.value) return;
 
-  errorMessage.value = null;
   successMessage.value = null;
 
   if (password.value.length < 6) {
-    errorMessage.value = "Le mot de passe doit contenir au moins 6 caractères.";
+    error.value = "Le mot de passe doit contenir au moins 6 caractères.";
     return;
   }
 
   if (password.value !== passwordConfirm.value) {
-    errorMessage.value = "Les mots de passe ne correspondent pas.";
+    error.value = "Les mots de passe ne correspondent pas.";
     return;
   }
 
-  loading.value = true;
-
-  const { error } = await client.auth.signUp({
-    email: email.value,
-    password: password.value,
-  });
-
-  loading.value = false;
-
-  if (error) {
-    errorMessage.value = error.message || "Impossible de créer le compte.";
-    return;
+  try {
+    await signUp(email.value, password.value, role.value);
+    successMessage.value =
+      "Compte créé. Vérifie tes emails si une confirmation est requise.";
+    await router.push("/onboarding/preferences");
+  } catch {
+    // l'erreur est déjà gérée dans le composable
   }
-
-  successMessage.value =
-    "Compte créé. Vérifie tes emails si une confirmation est requise.";
-
-  await router.push("/onboarding/preferences");
 };
 </script>

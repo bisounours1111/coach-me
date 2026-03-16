@@ -25,6 +25,7 @@
           <CoachProfileForm
             v-model="profileForm"
             :errors="fieldErrors"
+            :user-id="activeUserId ?? undefined"
             @validate="onValidate"
           />
 
@@ -123,6 +124,8 @@ const gameRanksByGameId = ref<Record<string, GameRankOption[]>>({});
 const activeUserId = ref<string | null>(null);
 
 const profileForm = ref<ProfileFormData>({
+  fullName: "",
+  avatarUrl: "",
   bio: "",
   socialLinks: {
     website: "",
@@ -175,9 +178,21 @@ const hydrateRoles = (
 
 const validateForm = (): boolean => {
   const errors: ProfileFieldErrors = {};
+  const fullName = profileForm.value.fullName.trim();
+  const avatarUrl = profileForm.value.avatarUrl.trim();
   const bio = profileForm.value.bio.trim();
   const selectedRoles = gameRoles.value.filter((role) => role.selected);
   const coachRoles = selectedRoles.filter((role) => role.isCoach);
+
+  if (!fullName) {
+    errors.fullName = "Le nom complet ou pseudo est requis.";
+  } else if (fullName.length > 50) {
+    errors.fullName = "Le nom doit faire au maximum 50 caractères.";
+  }
+
+  if (avatarUrl && !validateUrl(avatarUrl)) {
+    errors.avatarUrl = "L'URL de l'avatar est invalide.";
+  }
 
   if (bio.length > 500) {
     errors.bio = "La bio doit faire au maximum 500 caractères.";

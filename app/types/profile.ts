@@ -8,6 +8,8 @@ export interface SocialLinks {
 
 export interface CoachProfile {
   id: string;
+  fullName: string;
+  avatarUrl: string;
   bio: string;
   socialLinks: SocialLinks;
 }
@@ -53,6 +55,8 @@ export interface GameRankOption {
 }
 
 export interface ProfileFormData {
+  fullName: string;
+  avatarUrl: string;
   bio: string;
   socialLinks: SocialLinks;
 }

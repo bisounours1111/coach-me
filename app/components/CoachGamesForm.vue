@@ -156,29 +156,47 @@
               >
                 Ton rang actuel
               </label>
-              <select
-                :id="`rank-${game.id}`"
-                :value="roleByGameId[game.id]?.playerRankId ?? ''"
-                class="w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-2.5 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50 appearance-none"
-                @change="
-                  updateRank(
-                    game.id,
-                    ($event.target as HTMLSelectElement).value,
-                  )
-                "
-              >
-                <option value="" class="bg-[#0b0f19] text-slate-50">
-                  Non renseigné
-                </option>
-                <option
-                  v-for="rank in ranksByGameId?.[game.id] ?? []"
-                  :key="`${game.id}-${rank.id}`"
-                  :value="rank.id"
-                  class="bg-[#0b0f19] text-slate-50"
+              <div class="relative flex items-center">
+                <div
+                  v-if="roleByGameId[game.id]?.playerRankId"
+                  class="absolute left-3 z-10 flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-white/5"
                 >
-                  {{ rank.label }}
-                </option>
-              </select>
+                  <img
+                    v-if="ranksByGameId?.[game.id]?.find(r => r.id === roleByGameId[game.id].playerRankId)?.iconUrl"
+                    :src="ranksByGameId[game.id].find(r => r.id === roleByGameId[game.id].playerRankId)!.iconUrl!"
+                    class="h-full w-full object-contain"
+                    :key="roleByGameId[game.id].playerRankId"
+                  />
+                  <UIcon v-else name="i-heroicons-trophy" class="h-4 w-4 text-slate-500" />
+                </div>
+                <select
+                  :id="`rank-${game.id}`"
+                  :value="roleByGameId[game.id]?.playerRankId ?? ''"
+                  class="w-full rounded-xl border border-white/10 bg-[#0b0f19] py-2.5 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50 appearance-none"
+                  :class="roleByGameId[game.id]?.playerRankId ? 'pl-11 pr-4' : 'px-4'"
+                  @change="
+                    updateRank(
+                      game.id,
+                      ($event.target as any).value,
+                    )
+                  "
+                >
+                  <option value="" class="bg-[#0b0f19] text-slate-50">
+                    Non renseigné
+                  </option>
+                  <option
+                    v-for="rank in ranksByGameId?.[game.id] ?? []"
+                    :key="`${game.id}-${rank.id}`"
+                    :value="rank.id"
+                    class="bg-[#0b0f19] text-slate-50"
+                  >
+                    {{ rank.label }}
+                  </option>
+                </select>
+                <div class="pointer-events-none absolute right-3 flex items-center">
+                  <UIcon name="i-heroicons-chevron-down" class="h-4 w-4 text-slate-500" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

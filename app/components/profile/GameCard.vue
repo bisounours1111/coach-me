@@ -47,9 +47,16 @@ const color = computed(() => {
       <h4 class="truncate text-sm font-bold text-white group-hover:text-teal-400 transition-colors">
         {{ game.gameName }}
       </h4>
-      <p class="truncate text-[10px] font-bold uppercase tracking-widest text-slate-500">
-        {{ game.playerRankLabel || 'Sans rang' }}
-      </p>
+      <div class="flex items-center gap-1.5">
+        <img
+          v-if="game.playerRankIconUrl"
+          :src="game.playerRankIconUrl"
+          class="h-3.5 w-3.5 object-contain"
+        />
+        <p class="truncate text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          {{ game.playerRankLabel || 'Sans rang' }}
+        </p>
+      </div>
     </div>
 
     <!-- Coach Indicator -->

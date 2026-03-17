@@ -65,7 +65,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
 <template>
   <div
-    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30"
+    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30 overflow-x-hidden flex flex-col"
   >
     <!-- Loading State -->
     <div
@@ -141,7 +141,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
         />
       </div>
 
-      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
+      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16 flex-1">
         <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
           <!-- Left Column: Coaching & Content -->
           <div class="space-y-16">

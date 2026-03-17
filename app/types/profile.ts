@@ -38,6 +38,7 @@ export interface GameOption {
   id: string;
   slug: string;
   name: string;
+  iconUrl?: string | null;
 }
 
 export interface CoachGameRolePayload {

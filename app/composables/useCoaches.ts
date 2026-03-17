@@ -64,10 +64,12 @@ export const useCoaches = () => {
     const { data, error: queryError } = await (client as any)
       .from("profile_game_roles")
       .select(
-        "id, is_coach, player_rank_id, profiles(id, full_name, avatar_url, bio), games(id, slug, name), coachings(id, hourly_rate, is_active)",
+        "id, is_coach, player_rank_id, profiles(id, full_name, avatar_url, bio, coach_availabilities(id, start_at)), games(id, slug, name), coachings(id, hourly_rate, is_active)",
       )
       .eq("is_coach", true)
-      .eq("game_id", gameId);
+      .eq("game_id", gameId)
+      .gt("profiles.coach_availabilities.start_at", new Date().toISOString())
+      .eq("profiles.coach_availabilities.status", "available");
 
     loading.value = false;
 
@@ -84,6 +86,7 @@ export const useCoaches = () => {
         full_name: string | null;
         avatar_url: string | null;
         bio: string | null;
+        coach_availabilities: Array<{ id: string; start_at: string }> | null;
       } | null;
       games: { id: string; slug: string; name: string } | null;
       player_rank_id: string | null;
@@ -127,6 +130,8 @@ export const useCoaches = () => {
           avatarUrl: profile.avatar_url,
           bio: truncate(profile.bio),
           games: [gameInfo],
+          hasFutureAvailabilities:
+            (profile.coach_availabilities?.length ?? 0) > 0,
         });
       } else {
         existing.games.push(gameInfo);

@@ -1,6 +1,16 @@
 <script setup lang="ts">
 const route = useRoute();
 const user = useSupabaseUser();
+
+const backLink = computed(() => {
+  const game = route.query.game as string | undefined;
+  return game ? `/games/${game}` : "/";
+});
+
+const backLabel = computed(() => {
+  const game = route.query.game as string | undefined;
+  return game ? "Retour aux coachs" : "Accueil";
+});
 const client = useSupabaseClient();
 const { getPublicProfile } = usePublicProfile();
 
@@ -112,6 +122,17 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
     <!-- Main Profile Content -->
     <template v-else>
+      <!-- Back button -->
+      <div class="mx-auto max-w-6xl px-4 pt-6">
+        <NuxtLink
+          :to="backLink"
+          class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
+        >
+          <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
+          {{ backLabel }}
+        </NuxtLink>
+      </div>
+
       <ProfileHeader
         :profile="profile"
         :min-rate="minRate"

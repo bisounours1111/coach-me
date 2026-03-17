@@ -42,10 +42,14 @@ export const useCoachProfile = () => {
   const client = useSupabaseClient();
 
   const getCoachProfile = async (userId: string): Promise<CoachProfile> => {
+    const id = userId;
+    if (!id || id === "undefined") {
+      throw new Error("Invalid user ID provided to getCoachProfile");
+    }
     const { data, error } = await (client as any)
       .from("profiles")
       .select("id,full_name,avatar_url,bio,social_links")
-      .eq("id", userId)
+      .eq("id", id)
       .maybeSingle();
 
     if (error) {

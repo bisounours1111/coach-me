@@ -1,13 +1,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser();
-  const client = useSupabaseClient();
   const { getUserRole } = useProfile();
 
-  const requiredRole = (to.meta.requiredRole ?? null) as
-    | "coach"
-    | "student"
-    | "maintainer"
-    | null;
+  const requiredRole = (to.meta.requiredRole ?? null) as "user" | "maintainer";
 
   if (!requiredRole) {
     return;
@@ -17,7 +12,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/auth/login");
   }
 
-  const profileRole = await getUserRole(user.value.id);
+  const profileRole = await getUserRole(user.value.id || user.value.sub);
 
   if (requiredRole === "maintainer") {
     if (profileRole === "maintainer") {
@@ -26,30 +21,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/");
   }
 
-  const { data: gameRoles } = await (client as any)
-    .from("profile_game_roles")
-    .select("is_coach")
-    .eq("profile_id", user.value.id);
-
-  const hasAnyGame = Boolean(gameRoles?.length);
-  const isCoach = (gameRoles ?? []).some(
-    (gameRole: { is_coach: boolean }) => gameRole.is_coach,
-  );
-
-  if (requiredRole === "coach" && !isCoach) {
-    if (profileRole === "maintainer") {
-      return navigateTo("/dashboard/admin");
-    }
-    if (hasAnyGame) {
-      return navigateTo("/dashboard/student");
-    }
-    return navigateTo("/onboarding/preferences");
-  }
-
-  if (requiredRole === "student" && !hasAnyGame) {
-    if (profileRole === "maintainer") {
-      return navigateTo("/dashboard/admin");
-    }
-    return navigateTo("/onboarding/preferences");
+  if (requiredRole === "user" && !user.value) {
+    return navigateTo("/auth/login");
   }
 });

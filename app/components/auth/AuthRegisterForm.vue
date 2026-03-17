@@ -100,7 +100,7 @@ const onSubmit = async () => {
     await signUp(email.value, password.value, "student", username.value.trim());
     successMessage.value =
       "Compte créé. Vérifie tes emails si une confirmation est requise.";
-    await router.push("/onboarding/preferences");
+    await router.push("/preferences");
   } catch {
     // l'erreur est déjà gérée dans le composable
   }

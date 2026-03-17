@@ -93,11 +93,6 @@ const onSubmit = async () => {
       throw new Error("Session introuvable juste après connexion.");
     }
 
-    if (role === "maintainer") {
-      await router.push("/dashboard/admin");
-      return;
-    }
-
     const { data: gameRoles } = await (client as any)
       .from("profile_game_roles")
       .select("is_coach")
@@ -114,13 +109,13 @@ const onSubmit = async () => {
       isCoach,
     });
 
-    if (isCoach) {
-      await router.push("/dashboard/coach");
-    } else if (hasAnyGame) {
-      await router.push("/dashboard/student");
-    } else {
-      await router.push("/onboarding/preferences");
+    if (isCoach || hasAnyGame || role === "maintainer") {
+      await router.push("/");
+      return;
     }
+
+    await router.push("/preferences");
+    return;
   } catch (err: any) {
     errorMessage.value =
       err?.message || "Impossible de se connecter. Vérifie tes identifiants.";

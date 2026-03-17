@@ -21,6 +21,14 @@
           @update:model-value-password="password = $event"
           @submit="onSubmit"
         >
+          <template #extra>
+            <NuxtLink
+              to="/auth/forgot-password"
+              class="self-end text-xs text-slate-400 hover:text-slate-300"
+            >
+              Mot de passe oublié ?
+            </NuxtLink>
+          </template>
           <template #submit-label>Se connecter</template>
         </AuthForm>
 

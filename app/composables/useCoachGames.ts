@@ -57,11 +57,16 @@ export const useCoachGames = () => {
   const getAvailableGames = async (): Promise<GameOption[]> => {
     const { data, error } = await (client as any)
       .from("games")
-      .select("id,slug,name")
+      .select("id,slug,name,icon_url")
       .order("name", { ascending: true });
 
     if (error) throw error;
-    return (data ?? []) as GameOption[];
+    return (data ?? []).map((game: any) => ({
+      id: game.id,
+      slug: game.slug,
+      name: game.name,
+      iconUrl: game.icon_url,
+    })) as GameOption[];
   };
 
   const getCoachGameRoles = async (
@@ -247,10 +252,62 @@ export const useCoachGames = () => {
     }
   };
 
+  const uploadGameIcon = async (gameId: string, file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${gameId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `icons/${fileName}`;
+
+    const { error: uploadError } = await (client as any).storage
+      .from("game-icons")
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const {
+      data: { publicUrl },
+    } = (client as any).storage.from("game-icons").getPublicUrl(filePath);
+
+    const { error: updateError } = await (client as any)
+      .from("games")
+      .update({ icon_url: publicUrl })
+      .eq("id", gameId);
+
+    if (updateError) throw updateError;
+
+    return publicUrl;
+  };
+
+  const removeGameIcon = async (gameId: string) => {
+    const { data: game, error: fetchError } = await (client as any)
+      .from("games")
+      .select("icon_url")
+      .eq("id", gameId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (game?.icon_url) {
+      const urlParts = game.icon_url.split("/");
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `icons/${fileName}`;
+
+      await (client as any).storage.from("game-icons").remove([filePath]);
+    }
+
+    const { error: updateError } = await (client as any)
+      .from("games")
+      .update({ icon_url: null })
+      .eq("id", gameId);
+
+    if (updateError) throw updateError;
+  };
+
   return {
     getAvailableGames,
     getGameRanks,
     getCoachGameRoles,
     upsertCoachGameRoles,
+    uploadGameIcon,
+    removeGameIcon,
   };
 };

@@ -22,10 +22,56 @@
         <div
           class="mb-3 flex items-center justify-between gap-2 text-xs text-slate-200/85"
         >
-          <span class="inline-flex items-center gap-2">
-            <span class="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
-            {{ game.name }}
-          </span>
+          <div class="flex items-center gap-3">
+            <div
+              class="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5"
+            >
+              <img
+                v-if="game.iconUrl"
+                :src="game.iconUrl"
+                class="h-full w-full object-cover"
+              />
+              <div
+                v-else
+                class="flex h-full w-full items-center justify-center text-slate-500"
+              >
+                <UIcon name="i-heroicons-puzzle-piece" class="h-5 w-5" />
+              </div>
+              <div
+                v-if="uploadingGameId === game.id"
+                class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              >
+                <UIcon
+                  name="i-heroicons-arrow-path"
+                  class="h-4 w-4 animate-spin text-teal-400"
+                />
+              </div>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-100">{{ game.name }}</span>
+              <div v-if="isMaintainer" class="mt-1 flex gap-2">
+                <label
+                  class="cursor-pointer text-[0.65rem] text-teal-400 hover:text-teal-300"
+                >
+                  Modifier l'icône
+                  <input
+                    type="file"
+                    class="hidden"
+                    accept="image/*"
+                    @change="handleGameIconUpload(game.id, $event)"
+                  />
+                </label>
+                <button
+                  v-if="game.iconUrl"
+                  type="button"
+                  class="text-[0.65rem] text-rose-400 hover:text-rose-300"
+                  @click="removeGameIcon(game.id)"
+                >
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
           <label class="inline-flex items-center gap-2">
             <input
               :checked="roleByGameId[game.id]?.selected"
@@ -163,5 +209,59 @@ const updateRank = (gameId: string, playerRankId: string) => {
     ...role,
     playerRankId: playerRankId || null,
   }));
+};
+
+const { uploadGameIcon, removeGameIcon: removeGameIconApi } = useCoachGames();
+const { getIsMaintainer } = useCoachProfile();
+const user = useSupabaseUser();
+const isMaintainer = ref(false);
+const uploadingGameId = ref<string | null>(null);
+
+onMounted(async () => {
+  if (user.value) {
+    isMaintainer.value = await getIsMaintainer(user.value.id);
+  }
+});
+
+const handleGameIconUpload = async (gameId: string, event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+
+  const file = input.files[0];
+  if (!file) return;
+
+  try {
+    uploadingGameId.value = gameId;
+    const publicUrl = await uploadGameIcon(gameId, file);
+
+    // Mettre à jour localement l'icône du jeu dans la liste des jeux passée en prop
+    const game = props.games.find((g) => g.id === gameId);
+    if (game) {
+      game.iconUrl = publicUrl;
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'upload de l'icône :", error);
+  } finally {
+    uploadingGameId.value = null;
+  }
+};
+
+const removeGameIcon = async (gameId: string) => {
+  if (!confirm("Es-tu sûr de vouloir supprimer cette icône ?")) return;
+
+  try {
+    uploadingGameId.value = gameId;
+    await removeGameIconApi(gameId);
+
+    // Mettre à jour localement
+    const game = props.games.find((g) => g.id === gameId);
+    if (game) {
+      game.iconUrl = null;
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'icône :", error);
+  } finally {
+    uploadingGameId.value = null;
+  }
 };
 </script>

@@ -3,6 +3,7 @@ interface Game {
   id: string;
   slug: string;
   name: string;
+  iconUrl?: string | null;
 }
 
 const props = withDefaults(
@@ -37,8 +38,14 @@ const cardGradient = computed(() => {
     <!-- Image / Gradient -->
     <div
       class="relative h-32 w-full shrink-0 overflow-hidden sm:h-40"
-      :style="{ background: cardGradient }"
+      :style="{ background: game.iconUrl ? 'none' : cardGradient }"
     >
+      <img
+        v-if="game.iconUrl"
+        :src="game.iconUrl"
+        :alt="game.name"
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
       <div
         class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,transparent_50%)]"
       />

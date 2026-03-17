@@ -3,6 +3,7 @@ type Game = {
   id: string;
   slug: string;
   name: string;
+  iconUrl?: string | null;
 };
 
 useHead({
@@ -30,7 +31,7 @@ const coachCountByGameId = ref<Map<string, number>>(new Map());
 const loadGames = async () => {
   const { data, error } = await (client as any)
     .from("games")
-    .select("id, slug, name")
+    .select("id, slug, name, icon_url")
     .order("name", { ascending: true });
 
   if (error) {
@@ -39,7 +40,12 @@ const loadGames = async () => {
     return;
   }
 
-  games.value = (data ?? []) as Game[];
+  games.value = (data ?? []).map((game: any) => ({
+    id: game.id,
+    slug: game.slug,
+    name: game.name,
+    iconUrl: game.icon_url,
+  })) as Game[];
 
   if (games.value.length > 0) {
     const { data: counts } = await (client as any)

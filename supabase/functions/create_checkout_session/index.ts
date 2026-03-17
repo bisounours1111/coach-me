@@ -1,14 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { computeFeeAmountCents, getPlatformFeeBps, getStripe } from "../_shared/stripe.ts";
-import { getSupabaseAdmin, getUserIdFromAuthHeader } from "../_shared/supabase.ts";
+import { getStripe } from "./_shared/stripe.ts";
+import {
+  getSupabaseAdmin,
+  getUserIdFromAuthHeader,
+} from "./_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-async function resolveCoachProfileId(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, offerId: string) {
+async function resolveCoachProfileId(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  offerId: string,
+) {
   const { data: coaching, error: coachingError } = await supabaseAdmin
     .from("coachings")
     .select("profile_game_role_id")
@@ -26,7 +33,9 @@ async function resolveCoachProfileId(supabaseAdmin: ReturnType<typeof getSupabas
     .single();
 
   if (pgrError || !pgr?.profile_id) {
-    throw new Error("Impossible de résoudre le coach (profile_game_roles.profile_id)");
+    throw new Error(
+      "Impossible de résoudre le coach (profile_game_roles.profile_id)",
+    );
   }
 
   return String(pgr.profile_id);
@@ -41,7 +50,8 @@ serve(async (req: Request) => {
     const stripe = getStripe();
     const supabaseAdmin = getSupabaseAdmin();
 
-    const { coachId, offerId, gameName, hourlyRate, studentId, slotId } = await req.json();
+    const { coachId, offerId, gameName, hourlyRate, studentId, slotId } =
+      await req.json();
     const resolvedStudentId = studentId ?? getUserIdFromAuthHeader(req);
 
     const missing =
@@ -57,10 +67,15 @@ serve(async (req: Request) => {
 
     const rate = Number(hourlyRate);
     if (missing || !Number.isFinite(rate) || rate <= 0) {
-      throw new Error("Paramètres manquants (coachId, offerId, hourlyRate, studentId ou slotId)");
+      throw new Error(
+        "Paramètres manquants (coachId, offerId, hourlyRate, studentId ou slotId)",
+      );
     }
 
-    const coachProfileId = await resolveCoachProfileId(supabaseAdmin, String(offerId));
+    const coachProfileId = await resolveCoachProfileId(
+      supabaseAdmin,
+      String(offerId),
+    );
 
     const { data: coachProfile, error: coachProfileError } = await supabaseAdmin
       .from("profiles")
@@ -72,23 +87,31 @@ serve(async (req: Request) => {
       throw new Error("Impossible de lire le profil coach (profiles)");
     }
 
-    const connectId = coachProfile?.stripe_connect_id ? String(coachProfile.stripe_connect_id) : null;
+    const connectId = coachProfile?.stripe_connect_id
+      ? String(coachProfile.stripe_connect_id)
+      : null;
     if (!connectId) {
-      throw new Error("Ce coach n'a pas finalisé Stripe Connect (stripe_connect_id manquant)");
+      throw new Error(
+        "Ce coach n'a pas finalisé Stripe Connect (stripe_connect_id manquant)",
+      );
     }
+
+    // NOTE: Modèle "cagnotte interne": on encaisse sur la plateforme (Checkout standard),
+    // puis on crédite le wallet interne du coach lors de `verify_payment`.
+    // Stripe Connect n'est requis qu'au moment du retrait (cash-out), pas au paiement.
 
     const successUrl =
       Deno.env.get("STRIPE_SUCCESS_URL") ||
       `${Deno.env.get("CLIENT_URL")}/booking/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = Deno.env.get("STRIPE_CANCEL_URL") || `${Deno.env.get("CLIENT_URL")}/profile/${coachId}`;
+    const cancelUrl =
+      Deno.env.get("STRIPE_CANCEL_URL") ||
+      `${Deno.env.get("CLIENT_URL")}/profile/${coachId}`;
 
     if (!successUrl.includes("{CHECKOUT_SESSION_ID}")) {
       throw new Error("STRIPE_SUCCESS_URL doit contenir {CHECKOUT_SESSION_ID}");
     }
 
     const amountCents = Math.round(rate * 100);
-    const feeBps = getPlatformFeeBps();
-    const applicationFeeCents = computeFeeAmountCents(amountCents, feeBps);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -108,18 +131,6 @@ serve(async (req: Request) => {
       mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      payment_intent_data: {
-        application_fee_amount: applicationFeeCents,
-        transfer_data: {
-          destination: connectId,
-        },
-        metadata: {
-          offerId: String(offerId),
-          coachProfileId,
-          studentId: String(resolvedStudentId),
-          slotId: String(slotId),
-        },
-      },
       metadata: {
         coachId: String(coachId),
         offerId: String(offerId),
@@ -138,7 +149,9 @@ serve(async (req: Request) => {
       .single();
 
     if (slotError || !slot) {
-      throw new Error("Créneau introuvable (slotId) au moment de créer la session pending");
+      throw new Error(
+        "Créneau introuvable (slotId) au moment de créer la session pending",
+      );
     }
 
     const { error: insertError } = await supabaseAdmin.from("sessions").insert({
@@ -156,8 +169,14 @@ serve(async (req: Request) => {
     });
 
     if (insertError) {
-      if (!String(insertError.message || "").toLowerCase().includes("duplicate key")) {
-        throw new Error(`Erreur DB lors de l'insertion pending: ${insertError.message}`);
+      if (
+        !String(insertError.message || "")
+          .toLowerCase()
+          .includes("duplicate key")
+      ) {
+        throw new Error(
+          `Erreur DB lors de l'insertion pending: ${insertError.message}`,
+        );
       }
     }
 
@@ -172,4 +191,3 @@ serve(async (req: Request) => {
     });
   }
 });
-

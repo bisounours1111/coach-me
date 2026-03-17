@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getStripe } from "../_shared/stripe.ts";
-import { getSupabaseAdmin, getUserIdFromAuthHeader } from "../_shared/supabase.ts";
+import { getStripe } from "./_shared/stripe.ts";
+import { getSupabaseAdmin, getUserIdFromAuthHeader } from "./_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,10 +30,37 @@ async function getOrCreateWalletId(supabaseAdmin: ReturnType<typeof getSupabaseA
   return String(created.id);
 }
 
-function sumBalanceAmount(balanceItems: Array<{ amount: number; currency: string }>, currency: string): number {
-  return balanceItems
-    .filter((x) => String(x.currency).toLowerCase() === currency.toLowerCase())
-    .reduce((acc, x) => acc + (typeof x.amount === "number" ? x.amount : 0), 0);
+function toCents(amountMajor: unknown): number {
+  const n = typeof amountMajor === "number" ? amountMajor : Number(amountMajor);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 100);
+}
+
+async function getWalletAvailableCents(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  profileId: string,
+): Promise<number> {
+  const walletId = await getOrCreateWalletId(supabaseAdmin, profileId);
+  const { data, error } = await supabaseAdmin
+    .from("transactions")
+    .select("type,status,amount")
+    .eq("wallet_id", walletId);
+
+  if (error) throw new Error("Impossible de lire les transactions");
+
+  let credits = 0;
+  let debits = 0;
+  for (const t of data ?? []) {
+    const status = String((t as any).status || "");
+    if (status !== "succeeded" && status !== "pending") continue;
+
+    const type = String((t as any).type || "");
+    const cents = toCents((t as any).amount);
+    if (type === "credit") credits += cents;
+    if (type === "payout") debits += cents;
+  }
+
+  return Math.max(0, credits - debits);
 }
 
 serve(async (req: Request) => {
@@ -61,39 +88,44 @@ serve(async (req: Request) => {
 
     const connectId = String(profile.stripe_connect_id);
 
-    const balance = await stripe.balance.retrieve({ stripeAccount: connectId });
-    const availableEur = sumBalanceAmount(balance.available || [], "eur");
+    // Modèle "cagnotte interne": le solde vient de la DB, pas de la balance Stripe du compte connecté.
+    const availableCents = await getWalletAvailableCents(supabaseAdmin, userId);
 
-    const requested = amountCents == null ? availableEur : Math.max(0, Math.floor(Number(amountCents)));
+    const requested = amountCents == null
+      ? availableCents
+      : Math.max(0, Math.floor(Number(amountCents)));
     if (!Number.isFinite(requested) || requested <= 0) {
       throw new Error("Montant de retrait invalide");
     }
-    if (requested > availableEur) {
+    if (requested > availableCents) {
       throw new Error("Solde insuffisant");
     }
 
-    const payout = await stripe.payouts.create(
-      {
-        amount: requested,
-        currency: "eur",
-      },
-      { stripeAccount: connectId }
-    );
-
     const walletId = await getOrCreateWalletId(supabaseAdmin, userId);
+
+    // On transfère depuis la plateforme vers le compte Connect (cash-out).
+    // Le compte Connect pourra ensuite payer vers la banque selon sa config.
+    const transfer = await stripe.transfers.create({
+      amount: requested,
+      currency: "eur",
+      destination: connectId,
+      metadata: {
+        profileId: userId,
+      },
+    });
 
     await supabaseAdmin.from("transactions").insert({
       wallet_id: walletId,
       profile_id: userId,
       type: "payout",
-      status: payout.status === "paid" ? "succeeded" : "pending",
+      status: transfer.reversed ? "failed" : "pending",
       amount: (requested / 100).toFixed(2),
       fee: "0.00",
       currency: "EUR",
-      stripe_id: payout.id,
+      stripe_id: transfer.id,
     });
 
-    return new Response(JSON.stringify({ payout }), {
+    return new Response(JSON.stringify({ transfer }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

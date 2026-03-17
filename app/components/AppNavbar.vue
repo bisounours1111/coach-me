@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { useCoachProfile } from "../composables/useCoachProfile";
+import { useProfile } from "../composables/useProfile";
 import { onClickOutside } from "@vueuse/core";
 
 const user = useSupabaseUser();
 const client = useSupabaseClient();
 
 const { getCoachProfile } = useCoachProfile();
+const { getUserRole } = useProfile();
 
 const isMobileMenuOpen = ref(false);
 const isUserDropdownOpen = ref(false);
-const userProfile = ref<{ avatarUrl?: string; fullName?: string } | null>(null);
+const userProfile = ref<{ avatarUrl?: string; fullName?: string; role?: string } | null>(null);
 
 const dropdownRef = ref<HTMLElement | null>(null);
 
@@ -30,10 +32,14 @@ const fetchProfile = async () => {
   const userId = user.value?.id || user.value?.sub;
   if (userId) {
     try {
-      const profile = await getCoachProfile(userId);
+      const [profile, role] = await Promise.all([
+        getCoachProfile(userId),
+        getUserRole(userId)
+      ]);
       userProfile.value = {
         avatarUrl: profile.avatarUrl,
         fullName: profile.fullName,
+        role: role || 'user'
       };
     } catch (e) {
       console.error("Error fetching profile for navbar:", e);
@@ -133,6 +139,17 @@ watch(
                     <div class="h-4 w-4 i-lucide-settings" />
                     Éditer le profil
                   </NuxtLink>
+                  <template v-if="userProfile?.role === 'maintainer'">
+                    <div class="my-1 border-t border-slate-800" />
+                    <NuxtLink
+                      to="/dashboard/admin"
+                      class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                      @click="isUserDropdownOpen = false"
+                    >
+                      <div class="h-4 w-4 i-lucide-layout-dashboard" />
+                      Dashboard Admin
+                    </NuxtLink>
+                  </template>
                   <div class="my-1 border-t border-slate-800" />
                   <button
                     @click="logout"
@@ -231,6 +248,16 @@ watch(
               <div class="h-5 w-5 i-lucide-settings" />
               Éditer le profil
             </NuxtLink>
+            <template v-if="userProfile?.role === 'maintainer'">
+              <NuxtLink
+                to="/dashboard/admin"
+                class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-indigo-400 hover:bg-indigo-500/10"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="h-5 w-5 i-lucide-layout-dashboard" />
+                Dashboard Admin
+              </NuxtLink>
+            </template>
           </div>
 
           <div class="pt-4 border-t border-slate-800">

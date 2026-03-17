@@ -84,6 +84,8 @@
 </template>
 
 <script setup lang="ts">
+import { useAuth } from "~/composables/useAuth";
+
 const router = useRouter();
 const { signUp, loading, error } = useAuth();
 

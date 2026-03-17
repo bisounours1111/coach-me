@@ -109,119 +109,130 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
       </div>
     </div>
 
-      <!-- Main Profile Content -->
-      <template v-else>
-        <ProfileHeader
-          :profile="profile"
-          :min-rate="minRate"
-          :is-own-profile="isOwnProfile"
-        />
+    <!-- Main Profile Content -->
+    <template v-else>
+      <ProfileHeader
+        :profile="profile"
+        :min-rate="minRate"
+        :is-own-profile="isOwnProfile"
+      />
 
-        <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
-          <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
-            <!-- Left Column: Coaching & Content -->
-            <div class="space-y-16">
-              <!-- Coaching Sections -->
-              <div v-if="coachGames.length > 0" class="space-y-20">
-                <div
-                  v-for="game in coachGames"
-                  :key="game.profileGameRoleId"
-                  class="space-y-10"
-                >
-                  <!-- Section Header -->
-                  <div class="flex items-center gap-6">
-                    <div
-                      class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
-                    >
-                      {{ game.gameName.charAt(0) }}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <h2
-                        class="truncate text-2xl font-black text-white md:text-3xl"
-                      >
-                        Coaching {{ game.gameName }}
-                      </h2>
-                      <p
-                        class="text-sm font-bold uppercase tracking-widest text-teal-500/80"
-                      >
-                        {{
-                          profile.offersByRoleId[game.profileGameRoleId]
-                            ?.length || 0
-                        }}
-                        offre(s) disponible(s)
-                      </p>
-                    </div>
+      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
+        <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
+          <!-- Left Column: Coaching & Content -->
+          <div class="space-y-16">
+            <!-- Coaching Sections -->
+            <div v-if="coachGames.length > 0" class="space-y-20">
+              <div
+                v-for="game in coachGames"
+                :key="game.profileGameRoleId"
+                class="space-y-10"
+              >
+                <!-- Section Header -->
+                <div class="flex items-center gap-6">
+                  <div
+                    class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
+                  >
+                    {{ game.gameName.charAt(0) }}
                   </div>
+                  <div class="min-w-0 flex-1">
+                    <h2
+                      class="truncate text-2xl font-black text-white md:text-3xl"
+                    >
+                      Coaching {{ game.gameName }}
+                    </h2>
+                    <p
+                      class="text-sm font-bold uppercase tracking-widest text-teal-500/80"
+                    >
+                      {{
+                        profile.offersByRoleId[game.profileGameRoleId]
+                          ?.length || 0
+                      }}
+                      offre(s) disponible(s)
+                    </p>
+                  </div>
+                </div>
 
-                  <!-- Offers Grid -->
-                  <div class="grid gap-6 md:grid-cols-2">
+                <!-- Offers Grid -->
+                <div class="grid gap-6 md:grid-cols-2">
+                  <div
+                    v-for="offer in profile.offersByRoleId[
+                      game.profileGameRoleId
+                    ] ?? []"
+                    :key="offer.id"
+                    class="space-y-4"
+                  >
                     <ProfilePricingCard
-                      v-for="offer in profile.offersByRoleId[
-                        game.profileGameRoleId
-                      ] ?? []"
-                      :key="offer.id"
                       :offer="offer"
                       :game-name="game.gameName"
                       :is-own-profile="isOwnProfile"
                     />
-                  </div>
-
-                  <!-- Showcase Videos -->
-                  <div
-                    v-if="
-                      getAllVideoUrls(
-                        profile.offersByRoleId[game.profileGameRoleId] ?? [],
-                      ).length
-                    "
-                    class="space-y-6"
-                  >
-                    <div class="flex items-center gap-3 text-slate-400">
-                      <UIcon
-                        name="i-heroicons-play-circle"
-                        class="h-5 w-5 text-teal-500"
-                      />
-                      <h3 class="text-xs font-black uppercase tracking-[0.2em]">
-                        Showcase & Replays
-                      </h3>
-                    </div>
-                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      <ProfileVideoCard
-                        v-for="url in getAllVideoUrls(
-                          profile.offersByRoleId[game.profileGameRoleId] ?? [],
-                        )"
-                        :key="url"
-                        :video-url="url"
-                      />
-                    </div>
+                    <ProfileReserveButton
+                      v-if="!isOwnProfile && offer.hourlyRate"
+                      :coach-id="profile.id"
+                      :price="offer.hourlyRate"
+                      currency="EUR"
+                    />
                   </div>
                 </div>
-              </div>
 
-              <!-- Info Section if no coaching -->
-              <div v-else class="py-12">
+                <!-- Showcase Videos -->
                 <div
-                  class="rounded-3xl border border-white/5 bg-white/[0.02] p-10 backdrop-blur-sm"
+                  v-if="
+                    getAllVideoUrls(
+                      profile.offersByRoleId[game.profileGameRoleId] ?? [],
+                    ).length
+                  "
+                  class="space-y-6"
                 >
-                  <div class="flex items-start gap-6">
-                    <div
-                      class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-800 text-slate-400"
-                    >
-                      <UIcon name="i-heroicons-user" class="h-6 w-6" />
-                    </div>
-                    <div class="space-y-2">
-                      <h3 class="text-xl font-bold text-white">
-                        Profil Joueur
-                      </h3>
-                      <p class="text-slate-400 leading-relaxed">
-                        Ce joueur n'a pas encore configuré d'offres de coaching.
-                        Vous pouvez tout de même consulter ses jeux et ses
-                        statistiques dans la barre latérale.
-                      </p>
-                    </div>
+                  <div class="flex items-center gap-3 text-slate-400">
+                    <UIcon
+                      name="i-heroicons-play-circle"
+                      class="h-5 w-5 text-teal-500"
+                    />
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em]">
+                      Showcase & Replays
+                    </h3>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <ProfileVideoCard
+                      v-for="url in getAllVideoUrls(
+                        profile.offersByRoleId[game.profileGameRoleId] ?? [],
+                      )"
+                      :key="url"
+                      :video-url="url"
+                    />
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Info Section if no coaching -->
+            <div v-else class="py-12">
+              <div
+                class="rounded-3xl border border-white/5 bg-white/[0.02] p-10 backdrop-blur-sm"
+              >
+                <div class="flex items-start gap-6">
+                  <div
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-800 text-slate-400"
+                  >
+                    <UIcon name="i-heroicons-user" class="h-6 w-6" />
+                  </div>
+                  <div class="space-y-2">
+                    <h3 class="text-xl font-bold text-white">Profil Joueur</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                      Ce joueur n'a pas encore configuré d'offres de coaching.
+                      Vous pouvez tout de même consulter ses jeux et ses
+                      statistiques dans la barre latérale.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reviews Section -->
+            <ProfileReviewsSection :coach-id="profile.id" />
+          </div>
 
           <!-- Right Column: Sidebar (Games & Stats) -->
           <div class="space-y-10">

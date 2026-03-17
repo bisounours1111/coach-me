@@ -44,6 +44,13 @@
             @validate="onValidate"
           />
 
+          <div class="pt-8 border-t border-white/10">
+            <CoachAvailabilityForm
+              v-if="activeUserId"
+              :user-id="activeUserId"
+            />
+          </div>
+
           <div
             v-if="saveError"
             class="rounded-xl border border-[#f43f5e]/35 bg-[#f43f5e]/10 px-3 py-2 text-xs text-rose-100/90"
@@ -122,6 +129,15 @@ const availableGames = ref<Array<{ id: string; slug: string; name: string }>>(
 );
 const gameRanksByGameId = ref<Record<string, GameRankOption[]>>({});
 const activeUserId = ref<string | null>(null);
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const normalizeUuid = (value: unknown): string | null => {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw === "undefined" || raw === "null") return null;
+  return UUID_REGEX.test(raw) ? raw : null;
+};
 
 const profileForm = ref<ProfileFormData>({
   fullName: "",
@@ -285,9 +301,10 @@ const load = async (userId: string) => {
 };
 
 const resolveUserId = async (): Promise<string | null> => {
-  if (user.value?.id) return user.value.id;
+  const stateUserId = normalizeUuid(user.value?.id);
+  if (stateUserId) return stateUserId;
   const authUser = (await client.auth.getUser()).data.user;
-  return authUser?.id ?? null;
+  return normalizeUuid(authUser?.id);
 };
 
 onMounted(async () => {
@@ -304,9 +321,10 @@ onMounted(async () => {
 watch(
   () => user.value?.id,
   async (id) => {
-    if (!id) return;
-    activeUserId.value = id;
-    await load(id);
+    const normalizedId = normalizeUuid(id);
+    if (!normalizedId) return;
+    activeUserId.value = normalizedId;
+    await load(normalizedId);
   },
 );
 

@@ -1,30 +1,126 @@
 <template>
-  <section class="space-y-4">
-    <div>
-      <h2 class="text-sm font-semibold text-slate-100">Jeux & rangs</h2>
-      <p class="mt-1 text-xs text-slate-300/80">
-        Selectionne tes jeux, ton rang et indique si tu coaches.
-      </p>
+  <section class="space-y-8">
+    <div class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div class="flex-1">
+          <h2
+            class="text-sm font-semibold text-slate-100 italic flex items-center gap-2"
+          >
+            <span
+              class="flex h-5 w-5 items-center justify-center rounded-full bg-[#14b8a6] text-[10px] text-slate-950 font-bold"
+              >1</span
+            >
+            Sélectionne tes jeux
+          </h2>
+          <p class="mt-1 text-xs text-slate-300/80">
+            Choisis les jeux auxquels tu joues pour les afficher sur ton profil.
+          </p>
+        </div>
+
+        <div class="relative w-full sm:w-64">
+          <UIcon
+            name="i-heroicons-magnifying-glass"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Rechercher un jeu..."
+            class="w-full rounded-xl border border-white/10 bg-[#0b0f19]/45 pl-9 pr-4 py-2 text-xs text-slate-50 outline-none transition focus:border-[#14b8a6]/50"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="!filteredGames.length"
+        class="rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-8 text-center text-xs text-slate-400"
+      >
+        {{
+          searchQuery
+            ? "Aucun jeu ne correspond à ta recherche."
+            : "Aucun jeu disponible."
+        }}
+      </div>
+
+      <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <button
+          v-for="game in filteredGames"
+          :key="game.id"
+          type="button"
+          class="group relative flex flex-col items-center gap-3 rounded-2xl border p-3 transition-all duration-200"
+          :class="[
+            roleByGameId[game.id]?.selected
+              ? 'border-[#14b8a6] bg-[#14b8a6]/5 ring-1 ring-[#14b8a6]/20'
+              : 'border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]',
+          ]"
+          @click="toggleGame(game.id, !roleByGameId[game.id]?.selected)"
+        >
+          <div
+            class="absolute top-2 right-2 h-5 w-5 rounded-full border flex items-center justify-center transition-colors"
+            :class="[
+              roleByGameId[game.id]?.selected
+                ? 'bg-[#14b8a6] border-[#14b8a6] text-slate-950'
+                : 'bg-black/20 border-white/10 text-transparent',
+            ]"
+          >
+            <UIcon name="i-heroicons-check" class="h-3 w-3 font-bold" />
+          </div>
+
+          <div
+            class="relative h-16 w-16 overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-lg group-hover:scale-105 transition-transform"
+          >
+            <img
+              v-if="game.iconUrl"
+              :src="game.iconUrl"
+              class="h-full w-full object-cover"
+            />
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center text-slate-500"
+            >
+              <UIcon name="i-heroicons-puzzle-piece" class="h-8 w-8" />
+            </div>
+          </div>
+
+          <span
+            class="text-[0.7rem] font-medium text-center line-clamp-1"
+            :class="
+              roleByGameId[game.id]?.selected
+                ? 'text-[#14b8a6]'
+                : 'text-slate-300'
+            "
+          >
+            {{ game.name }}
+          </span>
+        </button>
+      </div>
     </div>
 
     <div
-      v-if="!games.length"
-      class="rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-3 text-xs text-slate-200/80"
+      v-if="selectedGames.length > 0"
+      class="space-y-4 pt-6 border-t border-white/5"
     >
-      Aucun jeu disponible pour le moment.
-    </div>
-    <div v-else class="grid gap-3">
-      <div
-        v-for="game in games"
-        :key="game.id"
-        class="rounded-xl border border-white/10 bg-[#0b0f19]/45 p-4 backdrop-blur"
-      >
-        <div
-          class="mb-3 flex items-center justify-between gap-2 text-xs text-slate-200/85"
+      <div class="flex items-center gap-2">
+        <h2
+          class="text-sm font-semibold text-slate-100 italic flex items-center gap-2"
         >
-          <div class="flex items-center gap-3">
+          <span
+            class="flex h-5 w-5 items-center justify-center rounded-full bg-[#14b8a6] text-[10px] text-slate-950 font-bold"
+            >2</span
+          >
+          Indique ton niveau
+        </h2>
+      </div>
+
+      <div class="grid gap-4">
+        <div
+          v-for="game in selectedGames"
+          :key="`config-${game.id}`"
+          class="rounded-2xl border border-white/10 bg-[#0b0f19]/60 p-5 backdrop-blur-md flex flex-col sm:flex-row gap-6 items-start sm:items-center"
+        >
+          <div class="flex items-center gap-4 min-w-[180px]">
             <div
-              class="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5"
+              class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5"
             >
               <img
                 v-if="game.iconUrl"
@@ -35,87 +131,64 @@
                 v-else
                 class="flex h-full w-full items-center justify-center text-slate-500"
               >
-                <UIcon name="i-heroicons-puzzle-piece" class="h-5 w-5" />
-              </div>
-              <div
-                v-if="uploadingGameId === game.id"
-                class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-              >
-                <UIcon
-                  name="i-heroicons-arrow-path"
-                  class="h-4 w-4 animate-spin text-teal-400"
-                />
+                <UIcon name="i-heroicons-puzzle-piece" class="h-6 w-6" />
               </div>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-100">{{ game.name }}</span>
+              <span class="text-sm font-bold text-slate-50">{{
+                game.name
+              }}</span>
+              <button
+                type="button"
+                class="text-[10px] text-rose-400 hover:text-rose-300 text-left mt-0.5"
+                @click="toggleGame(game.id, false)"
+              >
+                Retirer
+              </button>
             </div>
           </div>
-          <label class="inline-flex items-center gap-2">
-            <input
-              :checked="roleByGameId[game.id]?.selected"
-              type="checkbox"
-              class="h-4 w-4 rounded border-white/20 bg-[#0b0f19]/45 text-[#14b8a6] focus:ring-[#14b8a6]/35"
-              @change="
-                toggleGame(game.id, ($event.target as HTMLInputElement).checked)
-              "
-            />
-            <span class="text-[0.7rem]">Activer</span>
-          </label>
-        </div>
 
-        <div
-          class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-          :class="roleByGameId[game.id]?.selected ? '' : 'opacity-50'"
-        >
-          <div class="space-y-1.5">
-            <label
-              :for="`rank-${game.id}`"
-              class="text-xs font-medium text-slate-200/90"
-              >Ton rang</label
-            >
-            <select
-              :id="`rank-${game.id}`"
-              :value="roleByGameId[game.id]?.playerRankId ?? ''"
-              class="w-full rounded-xl border border-white/10 bg-[#0b0f19]/45 px-4 py-3 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50"
-              :disabled="!roleByGameId[game.id]?.selected"
-              @change="
-                updateRank(game.id, ($event.target as HTMLSelectElement).value)
-              "
-            >
-              <option value="">Non renseigne</option>
-              <option
-                v-for="rank in ranksByGameId?.[game.id] ?? []"
-                :key="`${game.id}-${rank.id}`"
-                :value="rank.id"
+          <div class="flex-1 w-full">
+            <div class="space-y-1.5">
+              <label
+                :for="`rank-${game.id}`"
+                class="text-[10px] uppercase tracking-wider font-bold text-slate-400"
               >
-                {{ rank.label }}
-              </option>
-            </select>
+                Ton rang actuel
+              </label>
+              <select
+                :id="`rank-${game.id}`"
+                :value="roleByGameId[game.id]?.playerRankId ?? ''"
+                class="w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-2.5 text-sm text-slate-50 outline-none transition focus:border-[#14b8a6]/50 appearance-none"
+                @change="
+                  updateRank(
+                    game.id,
+                    ($event.target as HTMLSelectElement).value,
+                  )
+                "
+              >
+                <option value="" class="bg-[#0b0f19] text-slate-50">
+                  Non renseigné
+                </option>
+                <option
+                  v-for="rank in ranksByGameId?.[game.id] ?? []"
+                  :key="`${game.id}-${rank.id}`"
+                  :value="rank.id"
+                  class="bg-[#0b0f19] text-slate-50"
+                >
+                  {{ rank.label }}
+                </option>
+              </select>
+            </div>
           </div>
-
-          <label
-            class="inline-flex items-center gap-2 self-end pb-1 text-xs text-slate-200/85"
-          >
-            <input
-              :checked="roleByGameId[game.id]?.isCoach"
-              type="checkbox"
-              class="h-4 w-4 rounded border-white/20 bg-[#0b0f19]/45 text-[#14b8a6] focus:ring-[#14b8a6]/35"
-              :disabled="!roleByGameId[game.id]?.selected"
-              @change="
-                toggleCoach(
-                  game.id,
-                  ($event.target as HTMLInputElement).checked,
-                )
-              "
-            />
-            Je suis coach sur ce jeu
-          </label>
         </div>
       </div>
     </div>
 
-    <p v-if="errors?.games" class="text-[0.7rem] text-rose-200/90">
+    <p
+      v-if="errors?.games"
+      class="text-[0.7rem] text-rose-400 font-medium bg-rose-400/10 border border-rose-400/20 rounded-lg px-3 py-2"
+    >
       {{ errors.games }}
     </p>
   </section>
@@ -144,10 +217,22 @@ const emit = defineEmits<{
   (e: "validate"): void;
 }>();
 
+const searchQuery = ref("");
+
+const filteredGames = computed(() => {
+  if (!searchQuery.value.trim()) return props.games;
+  const query = searchQuery.value.toLowerCase().trim();
+  return props.games.filter((game) => game.name.toLowerCase().includes(query));
+});
+
 const roleByGameId = computed<Record<string, CoachGameRole>>(() => {
   const map: Record<string, CoachGameRole> = {};
   for (const role of props.modelValue) map[role.gameId] = role;
   return map;
+});
+
+const selectedGames = computed(() => {
+  return props.games.filter((game) => roleByGameId.value[game.id]?.selected);
 });
 
 const updateRole = (
@@ -165,21 +250,10 @@ const toggleGame = (gameId: string, selected: boolean) => {
   updateRole(gameId, (role) => ({
     ...role,
     selected,
-    isCoach: selected ? role.isCoach : false,
+    // On ne touche pas à isCoach ici pour préserver l'état si l'utilisateur désélectionne/resélectionne
+    // Mais on nettoie les offres si désélectionné
     offers: selected ? role.offers : [],
     playerRankId: selected ? role.playerRankId : null,
-  }));
-};
-
-const toggleCoach = (gameId: string, isCoach: boolean) => {
-  updateRole(gameId, (role) => ({
-    ...role,
-    isCoach,
-    offers: isCoach
-      ? role.offers.length
-        ? role.offers
-        : [{ hourlyRate: null, description: "", videoUrls: [], isActive: true }]
-      : [],
   }));
 };
 
@@ -192,46 +266,4 @@ const updateRank = (gameId: string, playerRankId: string) => {
 
 const { uploadGameIcon, removeGameIcon: removeGameIconApi } = useCoachGames();
 const uploadingGameId = ref<string | null>(null);
-
-const handleGameIconUpload = async (gameId: string, event: Event) => {
-  const input = event.target as HTMLInputElement;
-  if (!input.files?.length) return;
-
-  const file = input.files[0];
-  if (!file) return;
-
-  try {
-    uploadingGameId.value = gameId;
-    const publicUrl = await uploadGameIcon(gameId, file);
-
-    // Mettre à jour localement l'icône du jeu dans la liste des jeux passée en prop
-    const game = props.games.find((g) => g.id === gameId);
-    if (game) {
-      game.iconUrl = publicUrl;
-    }
-  } catch (error) {
-    console.error("Erreur lors de l'upload de l'icône :", error);
-  } finally {
-    uploadingGameId.value = null;
-  }
-};
-
-const removeGameIcon = async (gameId: string) => {
-  if (!confirm("Es-tu sûr de vouloir supprimer cette icône ?")) return;
-
-  try {
-    uploadingGameId.value = gameId;
-    await removeGameIconApi(gameId);
-
-    // Mettre à jour localement
-    const game = props.games.find((g) => g.id === gameId);
-    if (game) {
-      game.iconUrl = null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la suppression de l'icône :", error);
-  } finally {
-    uploadingGameId.value = null;
-  }
-};
 </script>

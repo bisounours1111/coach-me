@@ -21,9 +21,14 @@
       {{ successMessage }}
     </div>
 
-    <section class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur">
+    <section
+      class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur"
+    >
       <h2 class="text-sm font-semibold text-slate-100">Ajouter un jeu</h2>
-      <form class="mt-4 flex flex-col gap-3 sm:flex-row" @submit.prevent="onAddGame">
+      <form
+        class="mt-4 flex flex-col gap-3 sm:flex-row"
+        @submit.prevent="onAddGame"
+      >
         <input
           v-model="newGameName"
           type="text"
@@ -48,10 +53,14 @@
         :key="game.id"
         class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur"
       >
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div>
             <p class="text-sm font-semibold text-slate-50">{{ game.name }}</p>
-            <p class="text-[0.7rem] uppercase tracking-wide text-slate-300/70">{{ game.slug }}</p>
+            <p class="text-[0.7rem] uppercase tracking-wide text-slate-300/70">
+              {{ game.slug }}
+            </p>
           </div>
           <button
             type="button"
@@ -63,7 +72,10 @@
           </button>
         </div>
 
-        <form class="mt-4 flex flex-col gap-3 sm:flex-row" @submit.prevent="onAddRank(game.id)">
+        <form
+          class="mt-4 flex flex-col gap-3 sm:flex-row"
+          @submit.prevent="onAddRank(game.id)"
+        >
           <input
             v-model="rankDraftByGame[game.id]"
             type="text"
@@ -93,7 +105,9 @@
               class="h-4 w-4 rounded-sm object-cover"
             />
             <span>{{ rank.label }}</span>
-            <label class="cursor-pointer text-slate-300 transition hover:text-emerald-300">
+            <label
+              class="cursor-pointer text-slate-300 transition hover:text-emerald-300"
+            >
               <input
                 type="file"
                 class="hidden"
@@ -113,7 +127,10 @@
             </button>
           </div>
 
-          <p v-if="!(ranksByGameId[game.id]?.length)" class="text-xs text-slate-300/70">
+          <p
+            v-if="!ranksByGameId[game.id]?.length"
+            class="text-xs text-slate-300/70"
+          >
             Aucun rang configuré pour ce jeu.
           </p>
         </div>
@@ -127,7 +144,6 @@
 </template>
 
 <script setup lang="ts">
-
 type AdminGame = {
   id: string;
   name: string;
@@ -164,7 +180,9 @@ const ranksByGameId = computed<Record<string, GameRank[]>>(() => {
   }
 
   for (const gameRanks of Object.values(map)) {
-    gameRanks.sort((a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label));
+    gameRanks.sort(
+      (a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label),
+    );
   }
 
   return map;
@@ -191,13 +209,17 @@ const getFileExtension = (file: File): string => {
 const loadData = async () => {
   errorMessage.value = null;
 
-  const [{ data: gamesData, error: gamesError }, ranksResult] = await Promise.all([
-    (client as any).from("games").select("id,name,slug").order("name", { ascending: true }),
-    (client as any)
-      .from("game_ranks")
-      .select("id,game_id,label,sort_order,icon_url")
-      .order("sort_order", { ascending: true }),
-  ]);
+  const [{ data: gamesData, error: gamesError }, ranksResult] =
+    await Promise.all([
+      (client as any)
+        .from("games")
+        .select("id,name,slug")
+        .order("name", { ascending: true }),
+      (client as any)
+        .from("game_ranks")
+        .select("id,game_id,label,sort_order,icon_url")
+        .order("sort_order", { ascending: true }),
+    ]);
 
   if (gamesError) {
     errorMessage.value = "Impossible de charger les jeux.";
@@ -214,22 +236,28 @@ const loadData = async () => {
       .select("id,game_id,label,sort_order")
       .order("sort_order", { ascending: true });
 
-    ranksData = ((fallback.data ?? []) as Array<Record<string, any>>).map((rank) => ({
-      ...rank,
-      icon_url: null,
-    }));
+    ranksData = ((fallback.data ?? []) as Array<Record<string, any>>).map(
+      (rank) => ({
+        ...rank,
+        icon_url: null,
+      }),
+    );
     ranksError = fallback.error ?? null;
   }
 
   if (ranksError) {
-    errorMessage.value = "Les jeux sont chargés, mais impossible de charger les rangs.";
+    errorMessage.value =
+      "Les jeux sont chargés, mais impossible de charger les rangs.";
   }
 
   games.value = (gamesData ?? []) as AdminGame[];
   ranks.value = (ranksData ?? []) as GameRank[];
 };
 
-const withGameLoading = async (gameId: string, callback: () => Promise<void>) => {
+const withGameLoading = async (
+  gameId: string,
+  callback: () => Promise<void>,
+) => {
   loadingByGame.value = { ...loadingByGame.value, [gameId]: true };
   try {
     await callback();
@@ -254,12 +282,15 @@ const onAddGame = async () => {
     return;
   }
 
-  const { error } = await (client as any).from("games").insert({ name: trimmedName, slug });
+  const { error } = await (client as any)
+    .from("games")
+    .insert({ name: trimmedName, slug });
 
   loadingGame.value = false;
 
   if (error) {
-    errorMessage.value = "Impossible d'ajouter ce jeu. Vérifie qu'il n'existe pas déjà.";
+    errorMessage.value =
+      "Impossible d'ajouter ce jeu. Vérifie qu'il n'existe pas déjà.";
     return;
   }
 
@@ -273,7 +304,10 @@ const onDeleteGame = async (gameId: string) => {
   errorMessage.value = null;
 
   await withGameLoading(gameId, async () => {
-    const { error } = await (client as any).from("games").delete().eq("id", gameId);
+    const { error } = await (client as any)
+      .from("games")
+      .delete()
+      .eq("id", gameId);
     if (error) {
       errorMessage.value = "Impossible de supprimer ce jeu.";
       return;
@@ -318,7 +352,10 @@ const onDeleteRank = async (rankId: string, gameId: string) => {
   errorMessage.value = null;
 
   await withGameLoading(gameId, async () => {
-    const { error } = await (client as any).from("game_ranks").delete().eq("id", rankId);
+    const { error } = await (client as any)
+      .from("game_ranks")
+      .delete()
+      .eq("id", rankId);
     if (error) {
       errorMessage.value = "Impossible de supprimer ce rang.";
       return;
@@ -328,7 +365,10 @@ const onDeleteRank = async (rankId: string, gameId: string) => {
   });
 };
 
-const withRankIconLoading = async (rankId: string, callback: () => Promise<void>) => {
+const withRankIconLoading = async (
+  rankId: string,
+  callback: () => Promise<void>,
+) => {
   loadingIconByRank.value = { ...loadingIconByRank.value, [rankId]: true };
   try {
     await callback();
@@ -337,7 +377,11 @@ const withRankIconLoading = async (rankId: string, callback: () => Promise<void>
   }
 };
 
-const onUploadRankIcon = async (event: Event, rank: GameRank, game: AdminGame) => {
+const onUploadRankIcon = async (
+  event: Event,
+  rank: GameRank,
+  game: AdminGame,
+) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0] ?? null;
   target.value = "";
@@ -356,8 +400,7 @@ const onUploadRankIcon = async (event: Event, rank: GameRank, game: AdminGame) =
     const rankSlug = slugify(rank.label) || rank.id;
     const objectPath = `${game.slug}/${rankSlug}.${extension}`;
 
-    const { error: uploadError } = await (client as any)
-      .storage
+    const { error: uploadError } = await (client as any).storage
       .from("rank")
       .upload(objectPath, file, { upsert: true, cacheControl: "3600" });
 
@@ -366,7 +409,9 @@ const onUploadRankIcon = async (event: Event, rank: GameRank, game: AdminGame) =
       return;
     }
 
-    const { data: publicData } = (client as any).storage.from("rank").getPublicUrl(objectPath);
+    const { data: publicData } = (client as any).storage
+      .from("rank")
+      .getPublicUrl(objectPath);
     const iconUrl = publicData?.publicUrl ?? null;
 
     const { error: updateError } = await (client as any)
@@ -375,7 +420,8 @@ const onUploadRankIcon = async (event: Event, rank: GameRank, game: AdminGame) =
       .eq("id", rank.id);
 
     if (updateError) {
-      errorMessage.value = "Icône uploadée, mais impossible de l'enregistrer en base.";
+      errorMessage.value =
+        "Icône uploadée, mais impossible de l'enregistrer en base.";
       return;
     }
 

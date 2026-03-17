@@ -65,19 +65,27 @@ onMounted(loadGames);
   <div class="mx-auto max-w-6xl px-4 py-12">
     <!-- Header -->
     <header class="mb-10 space-y-3">
-      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+      <p
+        class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80"
+      >
         CoachMe · Trouver un coach
       </p>
-      <h1 class="text-3xl font-black text-white md:text-4xl">Choisis ton jeu</h1>
+      <h1 class="text-3xl font-black text-white md:text-4xl">
+        Choisis ton jeu
+      </h1>
       <p class="max-w-xl text-sm text-slate-400">
-        Sélectionne un jeu pour voir les coachs disponibles et trouver celui qui te correspond.
+        Sélectionne un jeu pour voir les coachs disponibles et trouver celui qui
+        te correspond.
       </p>
     </header>
 
     <!-- Search -->
     <div class="mb-8">
       <div class="relative max-w-xs">
-        <UIcon name="i-heroicons-magnifying-glass" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <UIcon
+          name="i-heroicons-magnifying-glass"
+          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+        />
         <input
           v-model="search"
           type="text"
@@ -89,7 +97,9 @@ onMounted(loadGames);
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
-      <div class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500" />
+      <div
+        class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500"
+      />
       Chargement des jeux…
     </div>
 
@@ -102,7 +112,10 @@ onMounted(loadGames);
     </div>
 
     <!-- Grid -->
-    <section v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <section
+      v-else
+      class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+    >
       <GameCard
         v-for="game in filteredGames"
         :key="game.id"

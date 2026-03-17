@@ -129,8 +129,8 @@ watch(selectedDate, () => {
           <UAvatar
             :src="profile.avatarUrl || ''"
             :alt="profile.fullName"
-            size="lg"
-            class="ring-2 ring-white/10"
+            size="md"
+            class="h-14 w-14 overflow-hidden rounded-full ring-2 ring-white/10"
           />
           <div>
             <h1 class="text-2xl font-black text-white">Réserver une session</h1>

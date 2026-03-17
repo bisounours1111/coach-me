@@ -11,9 +11,28 @@ const { getUserRole } = useProfile();
 
 const isMobileMenuOpen = ref(false);
 const isUserDropdownOpen = ref(false);
-const userProfile = ref<{ avatarUrl?: string; fullName?: string; role?: string } | null>(null);
+const userProfile = ref<{
+  avatarUrl?: string;
+  fullName?: string;
+  role?: string;
+} | null>(null);
 
 const dropdownRef = ref<HTMLElement | null>(null);
+
+const dashboardShortcuts = computed(() => {
+  return [
+    {
+      to: "/dashboard/coach",
+      label: "Panel coach",
+      icon: "i-lucide-layout-dashboard",
+    },
+    {
+      to: "/dashboard/student",
+      label: "Panel élève",
+      icon: "i-lucide-graduation-cap",
+    },
+  ] as const;
+});
 
 if (import.meta.client) {
   onClickOutside(dropdownRef, () => {
@@ -21,7 +40,8 @@ if (import.meta.client) {
   });
 }
 
-const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+const DEFAULT_AVATAR =
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 const logout = async () => {
   await client.auth.signOut();
@@ -36,12 +56,12 @@ const fetchProfile = async () => {
     try {
       const [profile, role] = await Promise.all([
         getCoachProfile(userId),
-        getUserRole(userId)
+        getUserRole(userId),
       ]);
       userProfile.value = {
         avatarUrl: profile.avatarUrl,
         fullName: profile.fullName,
-        role: role || 'user'
+        role: role || "user",
       };
     } catch (e) {
       console.error("Error fetching profile for navbar:", e);
@@ -118,6 +138,18 @@ watch(
                   v-if="isUserDropdownOpen"
                   class="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-slate-800 bg-slate-900 p-1 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none"
                 >
+                  <NuxtLink
+                    v-for="l in dashboardShortcuts"
+                    :key="l.to"
+                    :to="l.to"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    @click="isUserDropdownOpen = false"
+                  >
+                    <div class="h-4 w-4" :class="l.icon" />
+                    {{ l.label }}
+                  </NuxtLink>
+                  <div class="my-1 border-t border-slate-800" />
+
                   <NuxtLink
                     :to="`/profile/${user.id || user.sub}`"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
@@ -220,6 +252,21 @@ watch(
           </div>
 
           <div class="space-y-1">
+            <NuxtLink
+              v-for="l in dashboardShortcuts"
+              :key="l.to"
+              :to="l.to"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+              @click="isMobileMenuOpen = false"
+            >
+              <div class="h-5 w-5" :class="l.icon" />
+              {{ l.label }}
+            </NuxtLink>
+            <div
+              v-if="dashboardShortcuts.length"
+              class="my-1 border-t border-slate-800"
+            />
+
             <NuxtLink
               :to="`/profile/${user.id || user.sub}`"
               class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"

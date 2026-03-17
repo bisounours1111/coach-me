@@ -60,11 +60,10 @@ serve(async (req: Request) => {
       );
     }
 
-    const appUrl =
-      Deno.env.get("CLIENT_URL") ||
-      Deno.env.get("PUBLIC_APP_URL") ||
-      "http://localhost:3000";
-    const redirectTo = `${appUrl.replace(/\/$/, "")}/auth/reset`;
+    const fromClient = (Deno.env.get("CLIENT_URL") || "").trim().replace(/\/$/, "");
+    const fromPublic = (Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+    const appUrl = (fromClient && !fromClient.includes("localhost") ? fromClient : fromPublic && !fromPublic.includes("localhost") ? fromPublic : "") || "http://localhost:3000";
+    const redirectTo = `${appUrl}/auth/reset`;
 
     const supabase = getSupabaseAdmin();
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({

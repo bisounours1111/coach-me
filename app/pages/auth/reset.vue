@@ -97,20 +97,45 @@ onMounted(async () => {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const type = params.get("type");
 
-  if (type === "recovery") {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
-      invalidLink.value = true;
+  try {
+    if (type === "recovery") {
+      const accessToken = params.get("access_token") ?? undefined;
+      const refreshToken = params.get("refresh_token") ?? undefined;
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error || !data.session) {
+          invalidLink.value = true;
+        } else {
+          ready.value = true;
+        }
+      } else {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (error || !session) {
+          invalidLink.value = true;
+        } else {
+          ready.value = true;
+        }
+      }
     } else {
-      ready.value = true;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        ready.value = true;
+      } else {
+        invalidLink.value = true;
+      }
     }
-  } else {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      ready.value = true;
-    } else {
-      invalidLink.value = true;
-    }
+  } catch {
+    invalidLink.value = true;
   }
 });
 

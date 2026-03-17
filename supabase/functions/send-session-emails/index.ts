@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getSupabaseAdmin } from "../_shared/supabase.ts";
+import { generateSessionActionToken } from "../_shared/session_token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +23,19 @@ function getEmailFrom(): string {
   return "Coach-me <onboarding@resend.dev>";
 }
 
-function buildSessionPayload(session: Record<string, unknown>, student: { full_name?: string | null; email?: string | null }, coach: { full_name?: string | null; email?: string | null }): Record<string, unknown> {
+/** URL de l'app pour les liens dans les emails. N'utilise jamais localhost (évite spam / avertissements Resend). */
+function getAppUrl(): string {
+  const raw = (Deno.env.get("CLIENT_URL") || Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+  if (raw && !raw.includes("localhost")) return raw;
+  const fallback = (Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+  return fallback && !fallback.includes("localhost") ? fallback : "";
+}
+
+function buildSessionPayload(
+  session: Record<string, unknown>,
+  student: { full_name?: string | null; email?: string | null },
+  coach: { full_name?: string | null; email?: string | null }
+): Record<string, unknown> {
   const startAt = session.start_at as string | undefined;
   const formatted = startAt
     ? new Date(startAt).toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
@@ -34,36 +47,93 @@ function buildSessionPayload(session: Record<string, unknown>, student: { full_n
     price: session.price,
     currency: session.currency ?? "EUR",
     student_name: student?.full_name ?? "Élève",
+    student_email: student?.email ?? "",
     coach_name: coach?.full_name ?? "Coach",
   };
 }
 
 function htmlFooter(): string {
-  const baseUrl =
-    Deno.env.get("CLIENT_URL") ||
-    Deno.env.get("PUBLIC_APP_URL") ||
-    "";
-  const privacyUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/privacy` : "#";
+  const privacyUrl = getAppUrl() ? `${getAppUrl()}/privacy` : "#";
   return `<p style="color:#888;font-size:12px;margin-top:24px;">Conformément au RGPD, vos données sont utilisées pour cette communication. <a href="${privacyUrl}">Politique de confidentialité</a>.</p>`;
 }
 
-function buildConfirmationHtml(payload: Record<string, unknown>, isCoach: boolean): string {
-  const who = isCoach ? "Un élève a réservé une session avec vous." : "Votre réservation est confirmée.";
+/** Mail apprenti quand le paiement est reçu (en attente de confirmation du coach) */
+function buildStudentPaidHtml(payload: Record<string, unknown>): string {
   return `
-    <h2>Session de coaching confirmée</h2>
-    <p>${who}</p>
+    <h2>Réservation reçue</h2>
+    <p>Votre réservation a bien été enregistrée et est en attente de confirmation par le coach.</p>
     <ul>
       <li><strong>Date / heure :</strong> ${payload.start_at}</li>
       <li><strong>Durée :</strong> ${payload.duration_minutes} min</li>
       <li><strong>Jeu :</strong> ${payload.game}</li>
       <li><strong>Tarif :</strong> ${payload.price} ${payload.currency}</li>
+      <li><strong>Coach :</strong> ${payload.coach_name}</li>
+    </ul>
+    <p><strong>Le coach te contactera le jour de ta session sur le chat de l’application.</strong></p>
+    <p>Tu recevras un email de confirmation une fois que le coach aura accepté la session.</p>
+    ${htmlFooter()}
+  `;
+}
+
+/** Mail coach quand une réservation est payée : infos + élève + liens confirmer / annuler */
+function buildCoachPaidHtml(
+  payload: Record<string, unknown>,
+  confirmUrl: string,
+  cancelUrl: string
+): string {
+  return `
+    <h2>Nouvelle réservation</h2>
+    <p>Un élève a réservé une session avec vous.</p>
+    <ul>
+      <li><strong>Date / heure :</strong> ${payload.start_at}</li>
+      <li><strong>Durée :</strong> ${payload.duration_minutes} min</li>
+      <li><strong>Jeu :</strong> ${payload.game}</li>
+      <li><strong>Tarif :</strong> ${payload.price} ${payload.currency}</li>
+      <li><strong>Apprenti :</strong> ${payload.student_name}</li>
+      <li><strong>Email apprenti :</strong> ${payload.student_email}</li>
+    </ul>
+    <p><strong>Confirmer ou annuler la session :</strong></p>
+    <p>
+      <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;margin-right:8px;">Confirmer la session</a>
+      <a href="${cancelUrl}" style="display:inline-block;padding:12px 24px;background:#ef4444;color:#fff;text-decoration:none;border-radius:8px;">Annuler la session</a>
+    </p>
+    <p style="color:#666;font-size:14px;">En annulant, l’apprenti sera notifié et le paiement sera remboursé.</p>
+    ${htmlFooter()}
+  `;
+}
+
+/** Mail apprenti quand le coach a confirmé (status → upcoming) */
+function buildStudentUpcomingHtml(payload: Record<string, unknown>): string {
+  return `
+    <h2>Session confirmée par le coach</h2>
+    <p>Le coach ${payload.coach_name} a confirmé votre session.</p>
+    <ul>
+      <li><strong>Date / heure :</strong> ${payload.start_at}</li>
+      <li><strong>Durée :</strong> ${payload.duration_minutes} min</li>
+      <li><strong>Jeu :</strong> ${payload.game}</li>
+    </ul>
+    <p><strong>Le coach te contactera le jour de la session sur le chat de l’application.</strong></p>
+    ${htmlFooter()}
+  `;
+}
+
+/** Mail coach quand il a confirmé (récap) */
+function buildCoachUpcomingHtml(payload: Record<string, unknown>): string {
+  return `
+    <h2>Session confirmée</h2>
+    <p>Vous avez confirmé la session avec ${payload.student_name}.</p>
+    <ul>
+      <li><strong>Date / heure :</strong> ${payload.start_at}</li>
+      <li><strong>Jeu :</strong> ${payload.game}</li>
     </ul>
     ${htmlFooter()}
   `;
 }
 
 function buildCanceledHtml(payload: Record<string, unknown>, isCoach: boolean): string {
-  const who = isCoach ? "Une session avec un élève a été annulée." : "Votre session de coaching a été annulée.";
+  const who = isCoach
+    ? "Une session avec un élève a été annulée."
+    : "Votre session de coaching a été annulée.";
   return `
     <h2>Session annulée</h2>
     <p>${who}</p>
@@ -72,10 +142,21 @@ function buildCanceledHtml(payload: Record<string, unknown>, isCoach: boolean): 
   `;
 }
 
+/** Mail apprenti quand le coach annule (session non confirmée + remboursement) */
+function buildStudentCanceledByCoachHtml(payload: Record<string, unknown>): string {
+  return `
+    <h2>Session non confirmée</h2>
+    <p>Le coach n’a pas pu confirmer votre session prévue le ${payload.start_at} (${payload.game}).</p>
+    <p><strong>Votre paiement a été remboursé.</strong></p>
+    <p>Tu peux réserver une autre session avec un autre coach sur l’application.</p>
+    ${htmlFooter()}
+  `;
+}
+
 async function sendResend(
   to: string,
   subject: string,
-  html: string,
+  html: string
 ): Promise<{ id?: string; error?: string }> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return { error: "RESEND_API_KEY manquante" };
@@ -111,13 +192,13 @@ serve(async (req: Request) => {
   if (expected && secret !== expected) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
   try {
     const body = (await req.json()) as SessionPayload;
-    const { session_id, new_status } = body;
+    const { session_id, new_status, old_status } = body;
     if (!session_id || !new_status) {
       throw new Error("session_id et new_status requis");
     }
@@ -160,6 +241,12 @@ serve(async (req: Request) => {
           .eq("id", pgr.profile_id)
           .single();
         coachProfile = coachRow ?? {};
+        if (!coachProfile?.email?.trim()) {
+          const { data: authUser } = await supabase.auth.admin.getUserById(pgr.profile_id);
+          if (authUser?.user?.email) {
+            coachProfile = { ...coachProfile, email: authUser.user.email, full_name: coachProfile?.full_name ?? authUser.user.user_metadata?.full_name };
+          }
+        }
       }
     }
 
@@ -168,42 +255,83 @@ serve(async (req: Request) => {
     if (!studentEmail && !coachEmail) {
       return new Response(
         JSON.stringify({ ok: true, message: "Aucun email à envoyer" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const payload = buildSessionPayload(
       session as Record<string, unknown>,
       student ?? {},
-      coachProfile,
+      coachProfile
     );
+
+    const functionsBaseUrl = `${Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "")}/functions/v1`;
+    let confirmUrl = "";
+    let cancelUrl = "";
+    try {
+      confirmUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "confirm"))}`;
+      cancelUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "cancel"))}`;
+    } catch (e) {
+      console.warn("session_action tokens skipped", (e as Error).message);
+    }
 
     const events: { event_type: string; to_email: string; subject: string; html: string }[] = [];
 
-    if (new_status === "paid" || new_status === "upcoming") {
+    if (new_status === "paid") {
       if (studentEmail) {
         events.push({
           event_type: "session_paid_student",
           to_email: studentEmail,
-          subject: "Réservation confirmée – Coach-me",
-          html: buildConfirmationHtml(payload, false),
+          subject: "Réservation reçue – Coach-me",
+          html: buildStudentPaidHtml(payload),
         });
       }
-      if (coachEmail) {
+      if (coachEmail && confirmUrl && cancelUrl) {
         events.push({
           event_type: "session_paid_coach",
           to_email: coachEmail,
           subject: "Nouvelle réservation – Coach-me",
-          html: buildConfirmationHtml(payload, true),
+          html: buildCoachPaidHtml(payload, confirmUrl, cancelUrl),
+        });
+      } else if (coachEmail) {
+        events.push({
+          event_type: "session_paid_coach",
+          to_email: coachEmail,
+          subject: "Nouvelle réservation – Coach-me",
+          html: buildCoachPaidHtml(
+            payload,
+            `${getAppUrl()}/dashboard/coach`,
+            `${getAppUrl()}/dashboard/coach`
+          ),
+        });
+      }
+    } else if (new_status === "upcoming") {
+      if (studentEmail) {
+        events.push({
+          event_type: "session_upcoming_student",
+          to_email: studentEmail,
+          subject: "Session confirmée par le coach – Coach-me",
+          html: buildStudentUpcomingHtml(payload),
+        });
+      }
+      if (coachEmail) {
+        events.push({
+          event_type: "session_upcoming_coach",
+          to_email: coachEmail,
+          subject: "Session confirmée – Coach-me",
+          html: buildCoachUpcomingHtml(payload),
         });
       }
     } else if (new_status === "canceled") {
+      const canceledByCoach = old_status === "paid";
       if (studentEmail) {
         events.push({
           event_type: "session_canceled_student",
           to_email: studentEmail,
-          subject: "Session annulée – Coach-me",
-          html: buildCanceledHtml(payload, false),
+          subject: canceledByCoach ? "Session non confirmée – Coach-me" : "Session annulée – Coach-me",
+          html: canceledByCoach
+            ? buildStudentCanceledByCoachHtml(payload)
+            : buildCanceledHtml(payload, false),
         });
       }
       if (coachEmail) {
@@ -243,17 +371,10 @@ serve(async (req: Request) => {
       const ev = eventMap.get(row.event_type);
       if (!ev) continue;
 
-      const { id: providerId, error: sendError } = await sendResend(
-        row.to_email,
-        ev.subject,
-        ev.html,
-      );
+      const { id: providerId, error: sendError } = await sendResend(row.to_email, ev.subject, ev.html);
 
       if (sendError) {
-        await supabase
-          .from("email_events")
-          .update({ error: sendError })
-          .eq("id", row.id);
+        await supabase.from("email_events").update({ error: sendError }).eq("id", row.id);
         continue;
       }
 
@@ -269,15 +390,15 @@ serve(async (req: Request) => {
       sent.push(row.event_type);
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, sent }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ ok: true, sent }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("send-session-emails", (err as Error).message);
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

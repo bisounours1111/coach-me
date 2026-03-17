@@ -1,43 +1,3 @@
-<template>
-  <div class="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-4 backdrop-blur">
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div class="space-y-1">
-        <p class="text-sm font-semibold text-slate-50">Rechercher un coach</p>
-        <p class="text-xs text-slate-300/80">
-          {{ showGameSelect ? 'Choisis un jeu puis filtre par nom ou bio.' : 'Filtre par nom ou bio.' }}
-        </p>
-      </div>
-      <div v-if="showGameSelect" class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <select
-          v-model="internalGameSlug"
-          class="w-full rounded-xl border border-white/10 bg-[#020617] px-3 py-2 text-xs text-slate-100 outline-none transition focus:border-[#14b8a6]/60 sm:w-48"
-        >
-          <option value="">Choisir un jeu…</option>
-          <option
-            v-for="game in games"
-            :key="game.id"
-            :value="game.slug"
-          >
-            {{ game.name }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <div class="relative flex-1">
-        <input
-          :value="searchText"
-          type="text"
-          placeholder="Rechercher par nom ou bio…"
-          class="w-full rounded-xl border border-white/10 bg-[#020617] px-3 py-2 text-xs text-slate-100 placeholder:text-slate-400/70 outline-none transition focus:border-[#14b8a6]/60"
-          @input="onInput"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 interface GameOption {
   id: string;
@@ -78,3 +38,30 @@ const onInput = (event: Event) => {
   emit("update:searchText", target?.value ?? "");
 };
 </script>
+
+<template>
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div v-if="showGameSelect" class="shrink-0">
+      <select
+        v-model="internalGameSlug"
+        class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-teal-500/40 sm:w-48"
+      >
+        <option value="">Choisir un jeu…</option>
+        <option v-for="game in games" :key="game.id" :value="game.slug">
+          {{ game.name }}
+        </option>
+      </select>
+    </div>
+
+    <div class="relative flex-1">
+      <UIcon name="i-heroicons-magnifying-glass" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      <input
+        :value="searchText"
+        type="text"
+        placeholder="Rechercher par nom ou bio…"
+        class="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-teal-500/40 focus:bg-white/[0.07]"
+        @input="onInput"
+      />
+    </div>
+  </div>
+</template>

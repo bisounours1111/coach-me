@@ -29,7 +29,12 @@ export const useAuth = () => {
     }
   };
 
-  const signUp = async (email: string, password: string, role: UserRole) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    role: UserRole,
+    username?: string,
+  ) => {
     if (loading.value) return;
 
     loading.value = true;
@@ -39,7 +44,10 @@ export const useAuth = () => {
       email,
       password,
       options: {
-        data: { role },
+        data: {
+          role,
+          full_name: username,
+        },
       },
     });
 

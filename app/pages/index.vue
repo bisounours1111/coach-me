@@ -1,91 +1,114 @@
+<script setup lang="ts">
+type Game = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+useHead({
+  title: "Choisir un jeu · CoachMe",
+});
+
+const client = useSupabaseClient();
+
+const loading = ref(true);
+const games = ref<Game[]>([]);
+const search = ref("");
+
+const filteredGames = computed(() => {
+  const term = search.value.trim().toLowerCase();
+  if (!term) return games.value;
+  return games.value.filter((game) => {
+    const name = game.name.toLowerCase();
+    const slug = game.slug.toLowerCase();
+    return name.includes(term) || slug.includes(term);
+  });
+});
+
+const coachCountByGameId = ref<Map<string, number>>(new Map());
+
+const loadGames = async () => {
+  const { data, error } = await (client as any)
+    .from("games")
+    .select("id, slug, name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    loading.value = false;
+    return;
+  }
+
+  games.value = (data ?? []) as Game[];
+
+  if (games.value.length > 0) {
+    const { data: counts } = await (client as any)
+      .from("profile_game_roles")
+      .select("game_id")
+      .eq("is_coach", true);
+
+    const map = new Map<string, number>();
+    for (const row of counts ?? []) {
+      const id = row.game_id as string;
+      map.set(id, (map.get(id) ?? 0) + 1);
+    }
+    coachCountByGameId.value = map;
+  }
+
+  loading.value = false;
+};
+
+onMounted(loadGames);
+</script>
+
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-50">
-    <!-- Hero -->
-    <section class="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-16 md:flex-row md:items-center">
-      <div class="flex-1 space-y-6">
-        <p class="text-sm font-semibold uppercase tracking-[0.25em] text-indigo-400">
-          CoachMe · Alpha
-        </p>
-        <h1 class="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-          Test Tailwind &
-          <span class="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
-            Nuxt 4
-          </span>
-        </h1>
-        <p class="max-w-xl text-base text-slate-300 sm:text-lg">
-          Cette page sert juste à vérifier que Tailwind fonctionne correctement :
-          typographie, couleurs, boutons, cartes et layout responsive.
-        </p>
+  <div class="mx-auto max-w-6xl px-4 py-12">
+    <!-- Header -->
+    <header class="mb-10 space-y-3">
+      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+        CoachMe · Trouver un coach
+      </p>
+      <h1 class="text-3xl font-black text-white md:text-4xl">Choisis ton jeu</h1>
+      <p class="max-w-xl text-sm text-slate-400">
+        Sélectionne un jeu pour voir les coachs disponibles et trouver celui qui te correspond.
+      </p>
+    </header>
 
-        <div class="flex flex-wrap gap-3">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400 hover:shadow-indigo-400/40"
-          >
-            Bouton primaire
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-full border border-slate-600 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-400 hover:bg-slate-800"
-          >
-            Bouton secondaire
-          </button>
-          <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/30">
-            Tailwind chargé ✔
-          </span>
-        </div>
+    <!-- Search -->
+    <div class="mb-8">
+      <div class="relative max-w-xs">
+        <UIcon name="i-heroicons-magnifying-glass" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Filtrer les jeux…"
+          class="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-teal-500/40 focus:bg-white/[0.07]"
+        />
       </div>
+    </div>
 
-      <!-- Carte de test -->
-      <div class="flex-1">
-        <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/70 to-slate-900/30 p-6 shadow-xl shadow-black/40 backdrop-blur">
-          <p class="text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
-            Aperçu UI
-          </p>
-          <h2 class="mt-3 text-lg font-semibold text-slate-50">
-            Carte de test CoachMe
-          </h2>
-          <p class="mt-2 text-sm text-slate-300">
-            Si tu vois des bordures arrondies, un dégradé, des ombres et des couleurs
-            indigo/émeraude, Tailwind fonctionne.
-          </p>
+    <!-- Loading -->
+    <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
+      <div class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500" />
+      Chargement des jeux…
+    </div>
 
-          <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
-            <div class="space-y-1 rounded-xl bg-slate-900/60 p-3">
-              <p class="text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-                Typographie
-              </p>
-              <p class="font-semibold text-slate-50">text-*, font-bold, tracking-*</p>
-            </div>
-            <div class="space-y-1 rounded-xl bg-slate-900/60 p-3">
-              <p class="text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-                Layout
-              </p>
-              <p class="font-semibold text-slate-50">flex, grid, gap, padding</p>
-            </div>
-            <div class="space-y-1 rounded-xl bg-slate-900/60 p-3">
-              <p class="text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-                Couleurs
-              </p>
-              <p class="font-semibold text-slate-50">bg-*, text-*, ring-*</p>
-            </div>
-            <div class="space-y-1 rounded-xl bg-slate-900/60 p-3">
-              <p class="text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-                Effets
-              </p>
-              <p class="font-semibold text-slate-50">shadow, backdrop-blur, gradients</p>
-            </div>
-          </div>
+    <!-- Empty -->
+    <div
+      v-else-if="filteredGames.length === 0"
+      class="rounded-3xl border border-white/5 bg-white/[0.02] p-12 text-center"
+    >
+      <p class="text-sm text-slate-500">Aucun jeu disponible pour le moment.</p>
+    </div>
 
-          <div class="mt-5 flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-400">
-            <span>Nuxt 4 · Tailwind 3</span>
-            <span class="rounded-full bg-slate-900 px-3 py-1 text-[0.7rem] font-medium text-slate-200">
-              Page de test
-            </span>
-          </div>
-        </div>
-      </div>
+    <!-- Grid -->
+    <section v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <GameCard
+        v-for="game in filteredGames"
+        :key="game.id"
+        :game="game"
+        :coach-count="coachCountByGameId.get(game.id) ?? null"
+      />
     </section>
   </div>
 </template>
-

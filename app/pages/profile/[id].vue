@@ -11,17 +11,18 @@ const authUserId = ref<string | null>(null);
 
 // Récupération robuste de l'ID utilisateur connecté
 onMounted(async () => {
-  if (user.value) {
-    authUserId.value = user.value.id;
+  const userId = user.value?.id || user.value?.sub;
+  if (userId) {
+    authUserId.value = userId;
   } else {
     const { data } = await client.auth.getUser();
-    authUserId.value = data.user?.id ?? null;
+    authUserId.value = data.user?.id || (data.user as any)?.sub || null;
   }
 });
 
 const isOwnProfile = computed(() => {
-  const currentId = user.value?.sub || authUserId.value;
-  const targetId = profile.value?.id;
+  const currentId = user.value?.id || user.value?.sub || authUserId.value;
+  const targetId = profile.value?.id || profile.value?.sub;
   if (!currentId || !targetId) return false;
   return String(currentId).toLowerCase() === String(targetId).toLowerCase();
 });
@@ -155,25 +156,15 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
                 <!-- Offers Grid -->
                 <div class="grid gap-6 md:grid-cols-2">
-                  <div
+                  <ProfilePricingCard
                     v-for="offer in profile.offersByRoleId[
                       game.profileGameRoleId
                     ] ?? []"
                     :key="offer.id"
-                    class="space-y-4"
-                  >
-                    <ProfilePricingCard
-                      :offer="offer"
-                      :game-name="game.gameName"
-                      :is-own-profile="isOwnProfile"
-                    />
-                    <ProfileReserveButton
-                      v-if="!isOwnProfile && offer.hourlyRate"
-                      :coach-id="profile.id"
-                      :price="offer.hourlyRate"
-                      currency="EUR"
-                    />
-                  </div>
+                    :offer="offer"
+                    :game-name="game.gameName"
+                    :is-own-profile="isOwnProfile"
+                  />
                 </div>
 
                 <!-- Showcase Videos -->
@@ -229,9 +220,6 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                 </div>
               </div>
             </div>
-
-            <!-- Reviews Section -->
-            <ProfileReviewsSection :coach-id="profile.id" />
           </div>
 
           <!-- Right Column: Sidebar (Games & Stats) -->

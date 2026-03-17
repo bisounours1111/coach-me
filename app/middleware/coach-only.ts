@@ -3,35 +3,16 @@ export default defineNuxtRouteMiddleware(async () => {
   const client = useSupabaseClient();
   const { getUserRole } = useProfile();
 
-  console.log(
-    "[Middleware:coach-only] Vérification d'accès pour:",
-    useRoute().path,
-  );
-
-  // 1. Récupération robuste de l'ID (SSR friendly)
-  let userId = user.value?.id;
+  let userId = user.value?.id || user.value?.sub;
   if (!userId) {
     const { data } = await client.auth.getUser();
-    userId = data.user?.id;
+    userId = data.user?.id || (data.user as any)?.sub;
   }
 
   if (!userId) {
-    console.log(
-      "[Middleware:coach-only] Aucun utilisateur trouvé, redirection vers login",
-    );
-    return navigateTo("/auth/login");
+    return navigateTo("/");
   }
 
-  // 2. Vérification du rôle global
-  const role = await getUserRole(userId);
-  console.log("[Middleware:coach-only] Rôle détecté:", role);
-
-  if (role === "maintainer" || role === "coach") {
-    console.log("[Middleware:coach-only] Accès AUTORISÉ (rôle)");
-    return;
-  }
-
-  // 3. Vérification des rôles par jeu (fallback)
   const { data: gameRoles } = await (client as any)
     .from("profile_game_roles")
     .select("is_coach")
@@ -40,17 +21,10 @@ export default defineNuxtRouteMiddleware(async () => {
   const isCoach = (gameRoles ?? []).some(
     (gameRole: { is_coach: boolean }) => gameRole.is_coach,
   );
-  console.log("[Middleware:coach-only] Coach via jeux:", isCoach);
 
   if (isCoach) {
-    console.log("[Middleware:coach-only] Accès AUTORISÉ (jeux)");
     return;
   }
 
-  // 4. Refus d'accès
-  console.log("[Middleware:coach-only] Accès REFUSÉ, redirection...");
-  if (role === "student") {
-    return navigateTo("/dashboard/student");
-  }
-  return navigateTo("/");
+  return navigateTo("/preferences");
 });

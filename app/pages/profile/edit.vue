@@ -301,10 +301,10 @@ const load = async (userId: string) => {
 };
 
 const resolveUserId = async (): Promise<string | null> => {
-  const stateUserId = normalizeUuid(user.value?.id);
+  const stateUserId = user.value?.id || user.value?.sub;
   if (stateUserId) return stateUserId;
   const authUser = (await client.auth.getUser()).data.user;
-  return normalizeUuid(authUser?.id);
+  return authUser?.id || (authUser as any)?.sub || null;
 };
 
 onMounted(async () => {
@@ -319,7 +319,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => user.value?.id,
+  () => user.value?.id || user.value?.sub,
   async (id) => {
     const normalizedId = normalizeUuid(id);
     if (!normalizedId) return;

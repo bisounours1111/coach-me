@@ -60,9 +60,13 @@ serve(async (req: Request) => {
       );
     }
 
+    // URL de l'app pour le redirect après reset : jamais localhost en prod (sinon le lien du mail renvoie vers localhost)
     const fromClient = (Deno.env.get("CLIENT_URL") || "").trim().replace(/\/$/, "");
     const fromPublic = (Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
-    const appUrl = (fromClient && !fromClient.includes("localhost") ? fromClient : fromPublic && !fromPublic.includes("localhost") ? fromPublic : "") || "http://localhost:3000";
+    const appUrl =
+      (fromClient && !fromClient.includes("localhost") ? fromClient : null) ??
+      (fromPublic && !fromPublic.includes("localhost") ? fromPublic : null) ??
+      "https://coach-me-nine.vercel.app";
     const redirectTo = `${appUrl}/auth/reset`;
 
     const supabase = getSupabaseAdmin();

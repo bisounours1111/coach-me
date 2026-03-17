@@ -29,7 +29,7 @@
           <div class="mt-6">
             <NuxtLink
               to="/auth/login"
-              class="flex w-full justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 hover:border-slate-600"
+              class="flex w-full cursor-pointer justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 hover:border-slate-600"
             >
               Se connecter
             </NuxtLink>

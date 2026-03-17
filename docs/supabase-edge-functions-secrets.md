@@ -23,3 +23,12 @@ Le lien de reset redirige vers `{CLIENT_URL}/auth/reset`.
 
 Les liens « Confirmer » / « Annuler » appellent l’Edge Function `session-action`.  
 La page de remerciement redirige vers `{CLIENT_URL}/dashboard/coach`.
+
+**Depuis la migration 025** : les tokens sont **one-time** et stockés en base (`session_action_tokens`). Ils ne dépendent plus du secret partagé. `send-session-emails` génère un token aléatoire, stocke son hash en DB, et met le token dans l’URL ; `session-action` vérifie d’abord en DB (hash + non utilisé + non expiré), puis en secours l’ancienne vérification HMAC pour les mails déjà envoyés.
+
+| Secret | Description |
+|--------|-------------|
+| `SESSION_ACTION_SECRET` ou `EMAIL_WEBHOOK_SECRET` | Utilisé en **secours** (anciens liens HMAC). Pour les **nouveaux** mails, la table `session_action_tokens` suffit. |
+| `STRIPE_SECRET_KEY` | Requis dans `session-action` pour le remboursement Stripe quand le coach annule. |
+
+Après confirmation ou annulation, le trigger DB appelle `send-session-emails` → l’apprenti reçoit l’email « Session confirmée » ou « Session annulée / non confirmée » ; en cas d’annulation, le remboursement Stripe est créé par `session-action`.

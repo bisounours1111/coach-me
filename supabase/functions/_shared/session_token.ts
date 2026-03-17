@@ -9,9 +9,14 @@ const EXPIRY_DAYS = 7;
 export type ActionPayload = { session_id: string; action: "confirm" | "cancel"; exp: number };
 
 function getSecret(): string {
-  const s = Deno.env.get("SESSION_ACTION_SECRET") || Deno.env.get("EMAIL_WEBHOOK_SECRET");
+  const s = (Deno.env.get("SESSION_ACTION_SECRET") || Deno.env.get("EMAIL_WEBHOOK_SECRET") || "").trim();
   if (!s) throw new Error("SESSION_ACTION_SECRET ou EMAIL_WEBHOOK_SECRET requis");
   return s;
+}
+
+/** Valeur brute (sans trim) pour accepter les tokens signés par l’ancienne version de send-session-emails. */
+function getSecretRaw(): string {
+  return Deno.env.get("SESSION_ACTION_SECRET") || Deno.env.get("EMAIL_WEBHOOK_SECRET") || "";
 }
 
 function base64urlEncode(bytes: ArrayBuffer): string {
@@ -47,30 +52,35 @@ export async function generateSessionActionToken(sessionId: string, action: "con
   return base64urlEncode(payloadBytes) + "." + base64urlEncode(sig);
 }
 
+async function verifyWithSecret(token: string, secret: string): Promise<ActionPayload | null> {
+  const [payloadPart, sigPart] = token.split(".");
+  if (!payloadPart || !sigPart) return null;
+  const payloadBytes = base64urlDecode(payloadPart);
+  const sigBytes = base64urlDecode(sigPart);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    ALG,
+    false,
+    ["verify"]
+  );
+  const ok = await crypto.subtle.verify(ALG, key, sigBytes, payloadBytes);
+  if (!ok) return null;
+  const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as ActionPayload;
+  if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+  if (payload.action !== "confirm" && payload.action !== "cancel") return null;
+  if (!payload.session_id) return null;
+  return payload;
+}
+
 export async function verifySessionActionToken(token: string): Promise<ActionPayload | null> {
   try {
-    const secret = getSecret();
-    const [payloadPart, sigPart] = token.split(".");
-    if (!payloadPart || !sigPart) return null;
-
-    const payloadBytes = base64urlDecode(payloadPart);
-    const sigBytes = base64urlDecode(sigPart);
-
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      ALG,
-      false,
-      ["verify"]
-    );
-    const ok = await crypto.subtle.verify(ALG, key, sigBytes, payloadBytes);
-    if (!ok) return null;
-
-    const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as ActionPayload;
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (payload.action !== "confirm" && payload.action !== "cancel") return null;
-    if (!payload.session_id) return null;
-    return payload;
+    const trimmed = getSecret();
+    let result = await verifyWithSecret(token, trimmed);
+    if (result) return result;
+    const raw = getSecretRaw();
+    if (raw && raw !== trimmed) result = await verifyWithSecret(token, raw);
+    return result;
   } catch {
     return null;
   }

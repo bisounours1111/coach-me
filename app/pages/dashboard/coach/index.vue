@@ -61,13 +61,11 @@ const stats = computed(() => {
     return start >= now && ["paid", "upcoming"].includes(String(s.status));
   }).length;
   const done = all.filter((s) => s.status === "done").length;
-  const paidLike = all.filter((s) =>
-    ["paid", "upcoming", "done"].includes(s.status),
+  // Revenus : uniquement sessions payées/confirmées/terminées (jamais canceled/remboursées)
+  const paidLike = all.filter(
+    (s) => s.status !== "canceled" && ["paid", "upcoming", "done"].includes(s.status),
   );
-  const grossRevenue = paidLike.reduce(
-    (sum, s) => sum + Number(s.price ?? 0),
-    0,
-  );
+  const grossRevenue = paidLike.reduce((sum, s) => sum + Number(s.price ?? 0), 0);
   const netRevenue = grossRevenue * (1 - PLATFORM_FEE_RATE);
 
   return {
@@ -305,6 +303,9 @@ onMounted(async () => {
               <div class="min-w-0">
                 <p class="truncate text-sm font-black text-white">
                   {{ s.game || "Coaching" }}
+                </p>
+                <p class="mt-1 text-xs text-teal-400/90">
+                  Apprenti : {{ s.student_name ?? "—" }}
                 </p>
                 <p class="mt-1 text-xs text-slate-400">
                   {{ formatDateTime(s.start_at) }}

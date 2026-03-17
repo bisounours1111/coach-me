@@ -74,6 +74,73 @@ export const useSessions = () => {
     return (coachings ?? []).map((c: any) => c.id).filter(Boolean);
   };
 
+  /** Enrichit les sessions élève avec le nom du coach (coach_id → coachings → profile_game_roles → profiles). */
+  const enrichSessionsWithCoachName = async (
+    sessions: any[],
+  ): Promise<any[]> => {
+    const coachIds = [...new Set((sessions ?? []).map((s) => s.coach_id).filter(Boolean))];
+    if (coachIds.length === 0) return sessions;
+
+    const { data: coachings, error: e1 } = await client
+      .from("coachings")
+      .select("id, profile_game_role_id")
+      .in("id", coachIds);
+    if (e1 || !coachings?.length) return sessions;
+
+    const pgrIds = coachings.map((c: any) => c.profile_game_role_id).filter(Boolean);
+    const { data: pgrs, error: e2 } = await client
+      .from("profile_game_roles")
+      .select("id, profile_id")
+      .in("id", pgrIds);
+    if (e2 || !pgrs?.length) return sessions;
+
+    const profileIds = pgrs.map((p: any) => p.profile_id).filter(Boolean);
+    const { data: profiles, error: e3 } = await client
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", profileIds);
+    if (e3 || !profiles?.length) return sessions;
+
+    const pgrByPgrId = Object.fromEntries((pgrs as any[]).map((p) => [p.id, p.profile_id]));
+    const nameByProfileId = Object.fromEntries(
+      (profiles as any[]).map((p) => [p.id, String(p.full_name ?? "").trim() || "Coach"]),
+    );
+    const coachIdToProfileId = Object.fromEntries(
+      (coachings as any[]).map((c) => [c.id, pgrByPgrId[c.profile_game_role_id]]),
+    );
+    const coachNameByCoachId: Record<string, string> = {};
+    for (const [cid, pid] of Object.entries(coachIdToProfileId)) {
+      if (pid) coachNameByCoachId[cid] = nameByProfileId[pid] ?? "Coach";
+    }
+
+    return sessions.map((s) => ({
+      ...s,
+      coach_name: coachNameByCoachId[s.coach_id] ?? "—",
+    }));
+  };
+
+  /** Enrichit les sessions coach avec le nom de l'apprenti (student_id = profiles.id). */
+  const enrichSessionsWithStudentName = async (
+    sessions: any[],
+  ): Promise<any[]> => {
+    const studentIds = [...new Set((sessions ?? []).map((s) => s.student_id).filter(Boolean))];
+    if (studentIds.length === 0) return sessions;
+
+    const { data: profiles, error } = await client
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", studentIds);
+    if (error || !profiles?.length) return sessions;
+
+    const nameById = Object.fromEntries(
+      (profiles as any[]).map((p) => [p.id, String(p.full_name ?? "").trim() || "Apprenti"]),
+    );
+    return sessions.map((s) => ({
+      ...s,
+      student_name: nameById[s.student_id] ?? "—",
+    }));
+  };
+
   const getSessions = async (role: "coach" | "student") => {
     const authenticatedUserId = await getAuthenticatedUserId();
 
@@ -85,7 +152,8 @@ export const useSessions = () => {
         .order("start_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      const list = data ?? [];
+      return await enrichSessionsWithCoachName(list);
     }
 
     // coach_id référence public.coachings(id)
@@ -99,7 +167,8 @@ export const useSessions = () => {
       .order("start_at", { ascending: false });
 
     if (error) throw error;
-    return data;
+    const list = data ?? [];
+    return await enrichSessionsWithStudentName(list);
   };
 
   const createSessionRequest = async (

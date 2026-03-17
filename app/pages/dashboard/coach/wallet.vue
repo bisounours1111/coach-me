@@ -89,7 +89,9 @@ const invokeAuthed = async <T,>(
 const eur = (cents: number) =>
   (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
-const availableEurCents = computed(() => walletBalance.value?.availableCents ?? 0);
+const availableEurCents = computed(
+  () => walletBalance.value?.availableCents ?? 0,
+);
 
 const fetchBalance = async () => {
   balanceLoading.value = true;
@@ -204,45 +206,6 @@ onMounted(async () => {
       >
         Session invalide/expirée. Déconnectez-vous puis reconnectez-vous.
       </div>
-
-      <details
-        class="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-200"
-      >
-        <summary class="cursor-pointer select-none font-black text-slate-100">
-          Debug auth (local)
-        </summary>
-        <div class="mt-3 space-y-2 text-slate-300">
-          <div>
-            <span class="font-black text-slate-100">user</span> :
-            {{ user?.sub ?? "null" }}
-          </div>
-          <div>
-            <span class="font-black text-slate-100">sessionStatus</span> :
-            {{ sessionStatus }}
-          </div>
-          <div>
-            <span class="font-black text-slate-100">hasToken</span> :
-            {{ lastTokenInfo?.hasToken ?? "unknown" }}
-          </div>
-          <div>
-            <span class="font-black text-slate-100">iss</span> :
-            {{ lastTokenInfo?.iss ?? "—" }}
-          </div>
-          <div>
-            <span class="font-black text-slate-100">aud</span> :
-            {{ lastTokenInfo?.aud ?? "—" }}
-          </div>
-          <div>
-            <span class="font-black text-slate-100">exp</span> :
-            {{
-              typeof lastTokenInfo?.exp === "number"
-                ? new Date(lastTokenInfo.exp * 1000).toLocaleString("fr-FR")
-                : "—"
-            }}
-          </div>
-        </div>
-      </details>
-
       <div
         v-if="error"
         class="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200"
@@ -279,9 +242,7 @@ onMounted(async () => {
           </p>
           <p class="mt-2 text-4xl font-black text-slate-200">
             {{
-              balanceLoading
-                ? "…"
-                : eur(walletBalance?.pendingPayoutCents ?? 0)
+              balanceLoading ? "…" : eur(walletBalance?.pendingPayoutCents ?? 0)
             }}
           </p>
           <p class="mt-2 text-xs text-slate-400">
@@ -292,7 +253,9 @@ onMounted(async () => {
 
       <section class="mt-4 grid gap-4 md:grid-cols-2">
         <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+          <p
+            class="text-[10px] font-black uppercase tracking-wider text-slate-500"
+          >
             Revenus total
           </p>
           <p class="mt-2 text-3xl font-black text-white">
@@ -304,7 +267,9 @@ onMounted(async () => {
         </div>
 
         <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+          <p
+            class="text-[10px] font-black uppercase tracking-wider text-slate-500"
+          >
             Déjà retiré
           </p>
           <p class="mt-2 text-3xl font-black text-white">

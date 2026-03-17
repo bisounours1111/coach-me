@@ -6,8 +6,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/auth/login");
   }
 
-  // Si on est déjà sur la page des préférences, on ne fait rien pour éviter une boucle
-  if (to.path === "/preferences") {
+  // Si on est déjà sur la page d'édition du profil, on ne fait rien pour éviter une boucle
+  if (to.path === "/profile/edit") {
     return;
   }
 
@@ -25,8 +25,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return;
   }
 
-  // Si aucun jeu n'est configuré, on redirige vers /preferences
+  // Si aucun jeu n'est configuré, on redirige vers /profile/edit
   if (!gameRoles || gameRoles.length === 0) {
-    return navigateTo("/preferences");
+    return navigateTo("/profile/edit");
   }
 });

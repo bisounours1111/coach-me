@@ -39,6 +39,28 @@
           @click="toggleCoach(game.gameId, !roleByGameId[game.gameId]?.isCoach)"
         >
           <div
+            v-if="!stripeConnected && stripeConnected !== null"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#050812]/80 p-4 text-center backdrop-blur-[2px] transition-all"
+          >
+            <UIcon
+              name="i-heroicons-lock-closed"
+              class="mb-2 h-5 w-5 text-amber-500"
+            />
+            <p
+              class="text-[10px] font-bold text-white uppercase tracking-tight"
+            >
+              Stripe Requis
+            </p>
+            <button
+              type="button"
+              class="mt-2 rounded-lg bg-teal-500 px-2 py-1 text-[9px] font-black text-slate-950 hover:bg-teal-400"
+              @click.stop="startStripeOnboarding"
+            >
+              Configurer
+            </button>
+          </div>
+
+          <div
             class="absolute top-2 right-2 h-5 w-5 rounded-full border flex items-center justify-center transition-colors"
             :class="[
               roleByGameId[game.gameId]?.isCoach
@@ -103,11 +125,42 @@
       </div>
 
       <div class="grid gap-6">
+        {{ stripeConnected }}
         <div
           v-for="role in coachRoles"
           :key="role.gameId"
-          class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur-md"
+          class="relative rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur-md"
         >
+          <!-- Overlay Stripe Connect Requis -->
+          <div
+            v-if="!stripeConnected && stripeConnected !== null"
+            class="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-[#050812]/60 p-6 text-center backdrop-blur-md transition-all"
+          >
+            <div
+              class="mb-4 rounded-full bg-amber-500/10 p-3 ring-1 ring-amber-500/20"
+            >
+              <UIcon
+                name="i-heroicons-banknotes"
+                class="h-8 w-8 text-amber-500"
+              />
+            </div>
+            <h3 class="mb-2 text-lg font-bold text-white">
+              Stripe Connect Requis
+            </h3>
+            <p class="mb-6 max-w-xs text-sm text-slate-300">
+              Tu dois configurer ton compte Stripe Connect pour pouvoir créer
+              des offres et commencer à coacher.
+            </p>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 hover:bg-teal-400 transition-all active:scale-95"
+              @click="startStripeOnboarding"
+            >
+              <UIcon name="i-heroicons-identification" class="h-5 w-5" />
+              Configurer Stripe Connect
+            </button>
+          </div>
+
           <div
             class="mb-4 flex items-center justify-between gap-2 border-b border-white/5 pb-4"
           >
@@ -299,6 +352,47 @@ const emit = defineEmits<{
 
 const client = useSupabaseClient();
 
+const stripeConnected = ref<boolean | null>(null);
+const stripeLoading = ref(true);
+
+const checkStripeStatus = async () => {
+  stripeLoading.value = true;
+  try {
+    const { data, error } = await client.functions.invoke(
+      "get_wallet_balance",
+      {},
+    );
+    if (error) {
+      stripeConnected.value = false;
+    } else if (data && (data.stripeConnectId || data.stripe_connect_id)) {
+      stripeConnected.value = true;
+    } else {
+      stripeConnected.value = false;
+    }
+  } catch (e) {
+    stripeConnected.value = false;
+  } finally {
+    stripeLoading.value = false;
+  }
+};
+
+const startStripeOnboarding = async () => {
+  try {
+    const { data, error } = await client.functions.invoke(
+      "create_connect_account",
+      {},
+    );
+    if (error) throw error;
+    if (data?.url) window.location.href = data.url;
+  } catch (e) {
+    console.error("Erreur onboarding Stripe:", e);
+  }
+};
+
+onMounted(() => {
+  checkStripeStatus();
+});
+
 const roleByGameId = computed<Record<string, CoachGameRole>>(() => {
   const map: Record<string, CoachGameRole> = {};
   if (!props.modelValue) return map;
@@ -343,6 +437,9 @@ const updateRole = (
 };
 
 const toggleCoach = (gameId: string, isCoach: boolean) => {
+  if (isCoach && !stripeConnected.value) {
+    return;
+  }
   updateRole(gameId, (role) => ({
     ...role,
     isCoach,

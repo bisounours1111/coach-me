@@ -102,13 +102,22 @@ onMounted(async () => {
           Gère tes sessions et ton profil de coaching.
         </p>
       </div>
-      <NuxtLink
-        to="/profile/edit"
-        class="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black text-white transition hover:bg-white/10 active:scale-95"
-      >
-        <UIcon name="i-heroicons-pencil-square" class="h-4 w-4" />
-        Modifier mon profil
-      </NuxtLink>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <NuxtLink
+          to="/dashboard/coach/wallet"
+          class="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black text-white transition hover:bg-white/10 active:scale-95"
+        >
+          <UIcon name="i-heroicons-wallet" class="h-4 w-4" />
+          Portefeuille
+        </NuxtLink>
+        <NuxtLink
+          to="/profile/edit"
+          class="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black text-white transition hover:bg-white/10 active:scale-95"
+        >
+          <UIcon name="i-heroicons-pencil-square" class="h-4 w-4" />
+          Modifier mon profil
+        </NuxtLink>
+      </div>
     </header>
 
     <!-- Stats -->

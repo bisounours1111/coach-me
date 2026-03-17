@@ -17,12 +17,27 @@ const error = ref<string | null>(null);
 const sessions = ref<any[]>([]);
 const profileName = ref<string | null>(null);
 
+type WalletBalance = {
+  availableCents: number;
+  earnedCents: number;
+  withdrawnCents: number;
+  pendingPayoutCents: number;
+  currency: string;
+};
+
+const walletLoading = ref(true);
+const walletError = ref<string | null>(null);
+const walletBalance = ref<WalletBalance | null>(null);
+
 const displayName = computed(() => {
   if (profileName.value) return profileName.value;
   if (!user.value) return "Coach";
   const email = user.value.email ?? "";
   return email.split("@")[0] || "Coach";
 });
+
+const eur = (cents: number) =>
+  (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
 // Commission plateforme estimée (à ajuster selon ton modèle économique)
 const PLATFORM_FEE_RATE = 0.15; // 15%
@@ -78,11 +93,31 @@ onMounted(async () => {
       }
     }
     sessions.value = await getSessions("coach");
+
+    walletLoading.value = true;
+    walletError.value = null;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (accessToken) {
+      const { data, error: fnError } = await supabase.functions.invoke<any>(
+        "get_wallet_balance",
+        {
+          body: {},
+          headers: { authorization: `Bearer ${accessToken}` },
+        },
+      );
+      if (fnError) throw fnError;
+      walletBalance.value = data ?? null;
+    } else {
+      walletBalance.value = null;
+      walletError.value = "Session absente: veuillez vous reconnecter.";
+    }
   } catch (e: any) {
     console.error(e);
     error.value = e?.message || "Impossible de charger vos sessions.";
   } finally {
     loading.value = false;
+    walletLoading.value = false;
   }
 });
 </script>
@@ -135,9 +170,33 @@ onMounted(async () => {
         <p class="mt-2 text-3xl font-black text-indigo-300">{{ loading ? "…" : stats.total }}</p>
       </div>
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Revenus</p>
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">À payer</p>
         <p class="mt-2 text-3xl font-black text-indigo-400">
-          {{ loading ? "…" : formatMoney(stats.netRevenue) }}
+          {{ walletLoading ? "…" : eur(walletBalance?.availableCents ?? 0) }}
+        </p>
+        <p v-if="walletError" class="mt-1 text-[10px] font-bold text-amber-300">
+          {{ walletError }}
+        </p>
+      </div>
+    </div>
+
+    <div class="mb-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Revenus total</p>
+        <p class="mt-2 text-2xl font-black text-white">
+          {{ walletLoading ? "…" : eur(walletBalance?.earnedCents ?? 0) }}
+        </p>
+      </div>
+      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Déjà retiré</p>
+        <p class="mt-2 text-2xl font-black text-white">
+          {{ walletLoading ? "…" : eur(walletBalance?.withdrawnCents ?? 0) }}
+        </p>
+      </div>
+      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Retrait en attente</p>
+        <p class="mt-2 text-2xl font-black text-white">
+          {{ walletLoading ? "…" : eur(walletBalance?.pendingPayoutCents ?? 0) }}
         </p>
       </div>
     </div>

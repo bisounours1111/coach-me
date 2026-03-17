@@ -17,12 +17,15 @@ const error = ref<string | null>(null);
 const balanceLoading = ref(true);
 const balanceError = ref<string | null>(null);
 
-type StripeBalance = {
-  available?: Array<{ amount: number; currency: string }>;
-  pending?: Array<{ amount: number; currency: string }>;
+type WalletBalance = {
+  availableCents: number;
+  earnedCents: number;
+  withdrawnCents: number;
+  pendingPayoutCents: number;
+  currency: string;
 };
 
-const balance = ref<StripeBalance | null>(null);
+const walletBalance = ref<WalletBalance | null>(null);
 
 const sessionStatus = ref<"unknown" | "ok" | "missing">("unknown");
 const lastTokenInfo = ref<null | {
@@ -86,32 +89,18 @@ const invokeAuthed = async <T,>(
 const eur = (cents: number) =>
   (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
-const sumCurrency = (
-  items: Array<{ amount: number; currency: string }> | undefined,
-  currency: string,
-) => {
-  return (items ?? [])
-    .filter((x) => String(x.currency).toLowerCase() === currency.toLowerCase())
-    .reduce((acc, x) => acc + (typeof x.amount === "number" ? x.amount : 0), 0);
-};
-
-const availableEurCents = computed(() =>
-  sumCurrency(balance.value?.available, "eur"),
-);
-const pendingEurCents = computed(() =>
-  sumCurrency(balance.value?.pending, "eur"),
-);
+const availableEurCents = computed(() => walletBalance.value?.availableCents ?? 0);
 
 const fetchBalance = async () => {
   balanceLoading.value = true;
   balanceError.value = null;
   try {
-    const { data, error } = await invokeAuthed<any>("get_connect_balance", {});
+    const { data, error } = await invokeAuthed<any>("get_wallet_balance", {});
     if (error) throw error;
-    balance.value = data?.balance ?? null;
+    walletBalance.value = data ?? null;
   } catch (e: any) {
     console.error(e);
-    balance.value = null;
+    walletBalance.value = null;
     balanceError.value =
       e?.message || "Impossible de récupérer le solde Stripe.";
   } finally {
@@ -157,11 +146,11 @@ const payout = async () => {
 watchEffect(() => {
   if (!user.value) {
     balanceLoading.value = false;
-    balance.value = null;
+    walletBalance.value = null;
     balanceError.value = "Non connecté.";
     return;
   }
-  if (!balanceLoading.value && balance.value) return;
+  if (!balanceLoading.value && walletBalance.value) return;
 });
 
 onMounted(async () => {
@@ -278,7 +267,7 @@ onMounted(async () => {
             {{ balanceLoading ? "…" : eur(availableEurCents) }}
           </p>
           <p class="mt-2 text-xs text-slate-400">
-            Montant retirable immédiatement (Stripe balance “available”).
+            Montant retirable immédiatement (cagnotte interne).
           </p>
         </div>
 
@@ -286,13 +275,43 @@ onMounted(async () => {
           <p
             class="text-[10px] font-black uppercase tracking-wider text-slate-500"
           >
-            En attente
+            Retrait en attente
           </p>
           <p class="mt-2 text-4xl font-black text-slate-200">
-            {{ balanceLoading ? "…" : eur(pendingEurCents) }}
+            {{
+              balanceLoading
+                ? "…"
+                : eur(walletBalance?.pendingPayoutCents ?? 0)
+            }}
           </p>
           <p class="mt-2 text-xs text-slate-400">
-            Montant en cours de traitement (Stripe balance “pending”).
+            Montant demandé en cash-out mais pas encore confirmé.
+          </p>
+        </div>
+      </section>
+
+      <section class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Revenus total
+          </p>
+          <p class="mt-2 text-3xl font-black text-white">
+            {{ balanceLoading ? "…" : eur(walletBalance?.earnedCents ?? 0) }}
+          </p>
+          <p class="mt-2 text-xs text-slate-400">
+            Total gagné (crédits validés).
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Déjà retiré
+          </p>
+          <p class="mt-2 text-3xl font-black text-white">
+            {{ balanceLoading ? "…" : eur(walletBalance?.withdrawnCents ?? 0) }}
+          </p>
+          <p class="mt-2 text-xs text-slate-400">
+            Total des retraits confirmés.
           </p>
         </div>
       </section>

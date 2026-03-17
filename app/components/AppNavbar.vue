@@ -94,7 +94,7 @@ watch(
         <!-- Logo -->
         <div class="flex items-center">
           <NuxtLink
-            to="/"
+            to="/games"
             class="flex items-center gap-2 group"
             @click="isMobileMenuOpen = false"
           >

@@ -200,7 +200,7 @@ const onSave = async () => {
 
     // Redirection après un court délai
     setTimeout(() => {
-      navigateTo("/");
+      navigateTo("/games");
     }, 1500);
   } catch (e: any) {
     console.error("Erreur lors de la sauvegarde:", e);

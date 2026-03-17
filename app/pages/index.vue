@@ -1,133 +1,113 @@
 <script setup lang="ts">
-type Game = {
-  id: string;
-  slug: string;
-  name: string;
-  iconUrl?: string | null;
-};
-
 useHead({
-  title: "Choisir un jeu · CoachMe",
+  title: "CoachMe · Trouvez un coach pour progresser",
+  meta: [
+    {
+      name: "description",
+      content:
+        "CoachMe met en relation des joueurs avec les meilleurs coachs gaming. Réservez des sessions et progressez plus vite.",
+    },
+  ],
 });
 
-const client = useSupabaseClient();
-
-const loading = ref(true);
-const games = ref<Game[]>([]);
-const search = ref("");
-
-const filteredGames = computed(() => {
-  const term = search.value.trim().toLowerCase();
-  if (!term) return games.value;
-  return games.value.filter((game) => {
-    const name = game.name.toLowerCase();
-    const slug = game.slug.toLowerCase();
-    return name.includes(term) || slug.includes(term);
-  });
-});
-
-const coachCountByGameId = ref<Map<string, number>>(new Map());
-
-const loadGames = async () => {
-  const { data, error } = await (client as any)
-    .from("games")
-    .select("id, slug, name, icon_url")
-    .order("name", { ascending: true });
-
-  if (error) {
-    console.error(error);
-    loading.value = false;
-    return;
-  }
-
-  games.value = (data ?? []).map((game: any) => ({
-    id: game.id,
-    slug: game.slug,
-    name: game.name,
-    iconUrl: game.icon_url,
-  })) as Game[];
-
-  if (games.value.length > 0) {
-    const { data: counts } = await (client as any)
-      .from("profile_game_roles")
-      .select("game_id")
-      .eq("is_coach", true);
-
-    const map = new Map<string, number>();
-    for (const row of counts ?? []) {
-      const id = row.game_id as string;
-      map.set(id, (map.get(id) ?? 0) + 1);
-    }
-    coachCountByGameId.value = map;
-  }
-
-  loading.value = false;
-};
-
-onMounted(loadGames);
+const benefits = [
+  {
+    icon: "i-heroicons-user-group",
+    color: "text-teal-400",
+    bg: "bg-teal-500/10",
+    title: "Des coachs qualifiés",
+    description:
+      "Parcourez des profils vérifiés, consultez les rangs, les vidéos et les avis laissés par d'autres joueurs.",
+  },
+  {
+    icon: "i-heroicons-calendar-days",
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10",
+    title: "Réservation simple",
+    description:
+      "Choisissez un créneau disponible en quelques clics et confirmez votre session directement depuis l'app.",
+  },
+  {
+    icon: "i-heroicons-chart-bar-square",
+    color: "text-rose-400",
+    bg: "bg-rose-500/10",
+    title: "Progressez rapidement",
+    description:
+      "Analyse de replays, coaching en direct ou plan de progression — adaptés à votre niveau et votre jeu.",
+  },
+];
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl px-4 py-12">
-    <!-- Header -->
-    <header class="mb-10 space-y-3">
-      <p
-        class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80"
-      >
-        CoachMe · Trouver un coach
-      </p>
-      <h1 class="text-3xl font-black text-white md:text-4xl">
-        Choisis ton jeu
-      </h1>
-      <p class="max-w-xl text-sm text-slate-400">
-        Sélectionne un jeu pour voir les coachs disponibles et trouver celui qui
-        te correspond.
-      </p>
-    </header>
-
-    <!-- Search -->
-    <div class="mb-8">
-      <div class="relative max-w-xs">
-        <UIcon
-          name="i-heroicons-magnifying-glass"
-          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-        />
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Filtrer les jeux…"
-          class="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-teal-500/40 focus:bg-white/[0.07]"
-        />
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
+  <div class="flex min-h-screen flex-col px-4">
+    <!-- ── HERO ──────────────────────────────────────────────────────── -->
+    <section class="relative py-24 sm:py-32">
+      <!-- Glow de fond -->
       <div
-        class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500"
-      />
-      Chargement des jeux…
-    </div>
+        class="pointer-events-none absolute inset-0 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <div class="h-[600px] w-[600px] rounded-full bg-teal-500/5 blur-[120px]" />
+        <div class="absolute h-[400px] w-[400px] -translate-x-32 translate-y-20 rounded-full bg-indigo-500/5 blur-[100px]" />
+      </div>
 
-    <!-- Empty -->
-    <div
-      v-else-if="filteredGames.length === 0"
-      class="rounded-3xl border border-white/5 bg-white/[0.02] p-12 text-center"
-    >
-      <p class="text-sm text-slate-500">Aucun jeu disponible pour le moment.</p>
-    </div>
+      <div class="relative mx-auto max-w-4xl text-center">
 
-    <!-- Grid -->
-    <section
-      v-else
-      class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-    >
-      <GameCard
-        v-for="game in filteredGames"
-        :key="game.id"
-        :game="game"
-        :coach-count="coachCountByGameId.get(game.id) ?? null"
-      />
+
+        <!-- Titre -->
+        <h1 class="text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Trouvez un coach pour
+          <span class="bg-gradient-to-r from-teal-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
+            progresser
+          </span>
+        </h1>
+
+        <!-- Sous-titre -->
+        <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
+          Réservez des sessions de coaching personnalisées avec des joueurs
+          expérimentés sur vos jeux favoris. Montez en niveau, à votre rythme.
+        </p>
+
+        <!-- CTA principal -->
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <NuxtLink
+            to="/games"
+            class="group inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-teal-500 px-8 py-4 text-sm font-black tracking-wider text-slate-950 shadow-xl shadow-teal-500/25 transition-all duration-300 hover:bg-teal-400 hover:shadow-teal-400/30 active:scale-95"
+          >
+            Trouver une session
+            <UIcon
+              name="i-heroicons-arrow-right"
+              class="h-4 w-4 transition-transform group-hover:translate-x-1"
+            />
+          </NuxtLink>
+          <NuxtLink
+            to="/auth/login"
+            class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-black tracking-wider text-white transition-all duration-300 hover:border-white/20 hover:bg-white/10 active:scale-95"
+          >
+            Se connecter
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BÉNÉFICES (3 blocs) ────────────────────────────────────────── -->
+    <section class="mx-auto mt-16 w-full max-w-6xl">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div
+          v-for="benefit in benefits"
+          :key="benefit.title"
+          class="rounded-2xl border border-white/5 bg-white/[0.02] p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04]"
+        >
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl"
+            :class="benefit.bg"
+          >
+            <UIcon :name="benefit.icon" class="h-6 w-6" :class="benefit.color" />
+          </div>
+          <h3 class="mb-2 text-base font-black text-white">{{ benefit.title }}</h3>
+          <p class="text-sm leading-relaxed text-slate-500">{{ benefit.description }}</p>
+        </div>
+      </div>
     </section>
   </div>
 </template>

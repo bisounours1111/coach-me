@@ -110,7 +110,7 @@ const onSubmit = async () => {
     });
 
     if (isCoach || hasAnyGame || role === "maintainer") {
-      await router.push("/");
+      await router.push("/games");
       return;
     }
 

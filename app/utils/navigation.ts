@@ -10,5 +10,5 @@ export const redirectByRole = async (
     return;
   }
 
-  await router.push("/");
+  await router.push("/games");
 };

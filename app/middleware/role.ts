@@ -18,7 +18,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (profileRole === "maintainer") {
       return;
     }
-    return navigateTo("/");
+    return navigateTo("/games");
   }
 
   if (requiredRole === "user" && !user.value) {

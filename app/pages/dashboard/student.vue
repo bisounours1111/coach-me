@@ -133,7 +133,10 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="error" class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6">
+    <div
+      v-if="error"
+      class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6"
+    >
       <p class="text-sm font-bold text-rose-300">{{ error }}</p>
     </div>
 
@@ -165,7 +168,7 @@ onMounted(async () => {
         progresser.
       </p>
       <NuxtLink
-        to="/"
+        to="/games"
         class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
       >
         Trouver un coach
@@ -182,7 +185,9 @@ onMounted(async () => {
       >
         <div class="flex items-start justify-between gap-6">
           <div class="space-y-1">
-            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
+            <p
+              class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500"
+            >
               Session
             </p>
             <p class="text-lg font-black text-white">
@@ -195,7 +200,9 @@ onMounted(async () => {
           </div>
 
           <div class="text-right">
-            <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+            <p
+              class="text-xs font-black uppercase tracking-widest text-slate-500"
+            >
               Statut
             </p>
             <p class="mt-1 text-sm font-black text-teal-300">

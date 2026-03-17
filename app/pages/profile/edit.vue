@@ -156,6 +156,7 @@
                     <div v-if="isCoach" class="pt-8 border-t border-white/10">
                       <CoachAvailabilityForm
                         v-if="activeUserId"
+                        ref="availabilityFormRef"
                         :user-id="activeUserId"
                       />
                     </div>
@@ -259,6 +260,16 @@ const profileForm = ref<ProfileFormData>({
 
 const gameRoles = ref<CoachGameRole[]>([]);
 
+const availabilityFormRef = ref<any>(null);
+
+watch(activeTab, (newTab) => {
+  if (newTab === "coaching") {
+    nextTick(() => {
+      availabilityFormRef.value?.refreshCalendar?.();
+    });
+  }
+});
+
 const isCoach = computed(() =>
   gameRoles.value.some((role) => role.selected && role.isCoach),
 );
@@ -303,40 +314,50 @@ const hydrateRoles = (
 
 const validateForm = (): boolean => {
   const errors: ProfileFieldErrors = {};
-  const fullName = profileForm.value.fullName.trim();
-  const avatarUrl = profileForm.value.avatarUrl.trim();
-  const bio = profileForm.value.bio.trim();
-  const selectedRoles = gameRoles.value.filter((role) => role.selected);
-  const coachRoles = selectedRoles.filter((role) => role.isCoach);
 
-  if (!fullName) {
-    errors.fullName = "Le nom complet ou pseudo est requis.";
-  } else if (fullName.length > 50) {
-    errors.fullName = "Le nom doit faire au maximum 50 caractères.";
-  }
+  // Validation Profil (uniquement si on est sur l'onglet profil ou si on sauvegarde globalement)
+  if (activeTab.value === "profile") {
+    const fullName = profileForm.value.fullName.trim();
+    const avatarUrl = profileForm.value.avatarUrl.trim();
+    const bio = profileForm.value.bio.trim();
 
-  if (avatarUrl && !validateUrl(avatarUrl)) {
-    errors.avatarUrl = "L'URL de l'avatar est invalide.";
-  }
+    if (!fullName) {
+      errors.fullName = "Le nom complet ou pseudo est requis.";
+    } else if (fullName.length > 50) {
+      errors.fullName = "Le nom doit faire au maximum 50 caractères.";
+    }
 
-  if (bio.length > 500) {
-    errors.bio = "La bio doit faire au maximum 500 caractères.";
-  }
+    if (avatarUrl && !validateUrl(avatarUrl)) {
+      errors.avatarUrl = "L'URL de l'avatar est invalide.";
+    }
 
-  const socialEntries = Object.entries(profileForm.value.socialLinks) as Array<
-    [keyof ProfileFormData["socialLinks"], string]
-  >;
-  for (const [network, url] of socialEntries) {
-    if (url.trim() && !validateUrl(url)) {
-      errors[`socialLinks.${String(network)}`] = "URL invalide.";
+    if (bio.length > 500) {
+      errors.bio = "La bio doit faire au maximum 500 caractères.";
+    }
+
+    const socialEntries = Object.entries(profileForm.value.socialLinks) as Array<
+      [keyof ProfileFormData["socialLinks"], string]
+    >;
+    for (const [network, url] of socialEntries) {
+      if (url.trim() && !validateUrl(url)) {
+        errors[`socialLinks.${String(network)}`] = "URL invalide.";
+      }
     }
   }
 
-  if (!selectedRoles.length) {
-    errors.games = "Ajoute au moins un jeu à ton profil.";
+  // Validation Jeux (uniquement si on est sur l'onglet jeux)
+  if (activeTab.value === "games") {
+    const selectedRoles = gameRoles.value.filter((role) => role.selected);
+    if (!selectedRoles.length) {
+      errors.games = "Ajoute au moins un jeu à ton profil.";
+    }
   }
 
-  if (isCoach.value) {
+  // Validation Coaching (uniquement si on est sur l'onglet coaching)
+  if (activeTab.value === "coaching" && isCoach.value) {
+    const selectedRoles = gameRoles.value.filter((role) => role.selected);
+    const coachRoles = selectedRoles.filter((role) => role.isCoach);
+
     for (const role of coachRoles) {
       if (!role.offers.length) {
         errors.offers = "Chaque jeu coaché doit avoir au moins une offre.";

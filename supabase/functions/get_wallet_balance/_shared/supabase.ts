@@ -23,7 +23,9 @@ export function getUserIdFromAuthHeader(req: Request): string | null {
   try {
     const payloadJson = atob(parts[1]);
     const payload = JSON.parse(payloadJson);
-    return typeof payload?.sub === "string" && payload.sub.trim() ? payload.sub : null;
+    return typeof payload?.sub === "string" && payload.sub.trim()
+      ? payload.sub
+      : null;
   } catch {
     return null;
   }

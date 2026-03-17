@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getSupabaseAdmin, getUserIdFromAuthHeader } from "./_shared/supabase.ts";
+import {
+  getSupabaseAdmin,
+  getUserIdFromAuthHeader,
+} from "./_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -57,9 +61,9 @@ serve(async (req: Request) => {
 
     if (error) throw new Error("Impossible de lire les transactions");
 
-    let earnedCents = 0; // total revenus (crédits succeeded)
-    let withdrawnCents = 0; // payouts succeeded
-    let pendingPayoutCents = 0; // payouts pending
+    let earnedCents = 0;
+    let withdrawnCents = 0;
+    let pendingPayoutCents = 0;
     for (const t of data ?? []) {
       const status = String((t as any).status || "");
       const type = String((t as any).type || "");
@@ -68,17 +72,24 @@ serve(async (req: Request) => {
       if (type === "credit" && status === "succeeded") {
         earnedCents += cents;
       }
-
       if (type === "payout" && status === "succeeded") {
         withdrawnCents += cents;
       }
-
       if (type === "payout" && status === "pending") {
         pendingPayoutCents += cents;
       }
     }
 
-    const availableCents = Math.max(0, earnedCents - withdrawnCents - pendingPayoutCents);
+    const availableCents = Math.max(
+      0,
+      earnedCents - withdrawnCents - pendingPayoutCents,
+    );
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_connect_id")
+      .eq("id", userId)
+      .single();
 
     return new Response(
       JSON.stringify({
@@ -88,6 +99,7 @@ serve(async (req: Request) => {
         withdrawnCents,
         pendingPayoutCents,
         availableCents,
+        stripeConnectId: profile?.stripe_connect_id || null,
       }),
       {
         status: 200,
@@ -101,4 +113,3 @@ serve(async (req: Request) => {
     });
   }
 });
-

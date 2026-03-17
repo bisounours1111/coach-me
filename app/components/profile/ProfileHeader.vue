@@ -17,6 +17,8 @@ onMounted(async () => {
   }
 });
 
+const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+
 const isOwnProfileComputed = computed(() => {
   if (props.isOwnProfile) return true;
   const u = user.value || sessionUser.value;
@@ -123,20 +125,13 @@ const copyProfileLink = () => {
               <div class="absolute inset-1 rounded-full bg-[#050812]" />
 
               <div
-                class="absolute inset-2 overflow-hidden rounded-full ring-1 ring-white/10"
+                class="absolute inset-2 overflow-hidden rounded-full ring-1 ring-white/10 bg-slate-800"
               >
                 <img
-                  v-if="profile.avatarUrl"
-                  :src="profile.avatarUrl"
+                  :src="profile.avatarUrl || DEFAULT_AVATAR"
                   :alt="profile.fullName"
                   class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-                <div
-                  v-else
-                  class="flex h-full w-full items-center justify-center bg-gradient-to-br from-teal-600 to-indigo-600 text-5xl font-black text-white"
-                >
-                  {{ profile.fullName.charAt(0).toUpperCase() }}
-                </div>
               </div>
             </div>
 

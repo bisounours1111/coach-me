@@ -417,6 +417,10 @@ onUnmounted(() => {
               <p v-if="sendError" class="mt-2 text-xs text-rose-400">
                 {{ sendError }}
               </p>
+              <p class="mt-2 text-[10px] text-slate-600">
+                Les messages sont conservés 12 mois ·
+                <NuxtLink to="/legal/privacy" class="hover:text-slate-400 underline" @click="handleClose">Confidentialité</NuxtLink>
+              </p>
             </div>
           </div>
         </template>

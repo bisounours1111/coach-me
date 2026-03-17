@@ -116,7 +116,7 @@ watch(
                   class="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-slate-800 bg-slate-900 p-1 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none"
                 >
                   <NuxtLink
-                    :to="`/profile/${user.id}`"
+                    :to="`/profile/${user.sub}`"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                     @click="isUserDropdownOpen = false"
                   >
@@ -214,7 +214,7 @@ watch(
 
           <div class="space-y-1">
             <NuxtLink
-              :to="`/profile/${user.id}`"
+              :to="`/profile/${user.sub}`"
               class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
               @click="isMobileMenuOpen = false"
             >

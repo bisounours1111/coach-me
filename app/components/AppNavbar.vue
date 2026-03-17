@@ -21,6 +21,8 @@ if (import.meta.client) {
   });
 }
 
+const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+
 const logout = async () => {
   await client.auth.signOut();
   isUserDropdownOpen.value = false;
@@ -94,20 +96,13 @@ watch(
             <div class="relative" ref="dropdownRef">
               <button
                 @click="isUserDropdownOpen = !isUserDropdownOpen"
-                class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-800 transition-colors hover:border-indigo-500 focus:outline-none overflow-hidden"
+                class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-800 transition-colors hover:border-indigo-500 focus:outline-none overflow-hidden bg-slate-800"
               >
                 <img
-                  v-if="userProfile?.avatarUrl"
-                  :src="userProfile.avatarUrl"
-                  :alt="userProfile.fullName"
+                  :src="userProfile?.avatarUrl || DEFAULT_AVATAR"
+                  :alt="userProfile?.fullName || 'Utilisateur'"
                   class="h-full w-full object-cover"
                 />
-                <div
-                  v-else
-                  class="flex h-full w-full items-center justify-center bg-slate-800"
-                >
-                  <div class="h-5 w-5 i-lucide-user text-slate-400" />
-                </div>
               </button>
 
               <!-- Dropdown Menu -->
@@ -208,20 +203,13 @@ watch(
         <template v-if="user">
           <div class="flex items-center gap-3 px-2 mb-4">
             <div
-              v-if="userProfile?.avatarUrl"
-              class="h-10 w-10 overflow-hidden rounded-full border border-slate-700"
+              class="h-10 w-10 overflow-hidden rounded-full border border-slate-700 bg-slate-800"
             >
               <img
-                :src="userProfile.avatarUrl"
-                :alt="userProfile.fullName"
+                :src="userProfile?.avatarUrl || DEFAULT_AVATAR"
+                :alt="userProfile?.fullName || 'Utilisateur'"
                 class="h-full w-full object-cover"
               />
-            </div>
-            <div
-              v-else
-              class="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700"
-            >
-              <div class="h-5 w-5 i-lucide-user text-slate-400" />
             </div>
             <div>
               <p class="text-sm font-medium text-slate-50">

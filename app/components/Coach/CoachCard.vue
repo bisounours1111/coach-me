@@ -6,6 +6,8 @@ const props = defineProps<{
   selectedGameSlug: string | null;
 }>();
 
+const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+
 const primaryGame = computed(() => {
   if (!props.selectedGameSlug) return props.coach.games[0] ?? null;
   return (
@@ -34,12 +36,10 @@ const initials = computed(() => {
         class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-800 text-sm font-black text-slate-100 overflow-hidden"
       >
         <img
-          v-if="coach.avatarUrl"
-          :src="coach.avatarUrl"
-          alt=""
+          :src="coach.avatarUrl || DEFAULT_AVATAR"
+          :alt="coach.fullName || 'Coach'"
           class="h-14 w-14 object-cover"
         />
-        <span v-else>{{ initials }}</span>
       </div>
       <div class="min-w-0 flex-1">
         <h2 class="truncate text-sm font-black text-white">

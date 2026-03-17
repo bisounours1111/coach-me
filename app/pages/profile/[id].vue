@@ -120,24 +120,26 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
       </div>
     </div>
 
-    <!-- Main Profile Content -->
     <template v-else>
-      <!-- Back button -->
-      <div class="mx-auto max-w-6xl px-4 pt-6">
-        <NuxtLink
-          :to="backLink"
-          class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
-        >
-          <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
-          {{ backLabel }}
-        </NuxtLink>
-      </div>
+      <div class="relative">
+        <div class="absolute top-6 left-0 right-0 z-20">
+          <div class="mx-auto max-w-6xl px-4">
+            <NuxtLink
+              :to="backLink"
+              class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
+            >
+              <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
+              {{ backLabel }}
+            </NuxtLink>
+          </div>
+        </div>
 
-      <ProfileHeader
-        :profile="profile"
-        :min-rate="minRate"
-        :is-own-profile="isOwnProfile"
-      />
+        <ProfileHeader
+          :profile="profile"
+          :min-rate="minRate"
+          :is-own-profile="isOwnProfile"
+        />
+      </div>
 
       <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
         <div class="grid gap-12 lg:grid-cols-[1fr_320px]">

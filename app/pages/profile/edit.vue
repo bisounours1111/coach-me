@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen px-4 py-10">
-    <div class="mx-auto w-full max-w-5xl">
+  <div class="min-h-screen px-4 py-10 overflow-x-hidden flex flex-col">
+    <div class="mx-auto w-full max-w-5xl flex-1">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-slate-50">
           {{ onboardingMode ? 'Bienvenue ! Configure ton compte' : 'Paramètres du compte' }}

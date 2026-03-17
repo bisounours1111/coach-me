@@ -109,10 +109,13 @@ export const useCoaches = () => {
       const profileId = profile.id;
       const existing = byProfile.get(profileId);
 
-      const activeCoaching =
-        row.coachings?.find((c) => c.is_active && c.hourly_rate != null) ??
-        row.coachings?.[0] ??
-        null;
+      const activeCoachings =
+        row.coachings?.filter((c) => c.is_active && c.hourly_rate != null) ?? [];
+
+      const minHourlyRate =
+        activeCoachings.length > 0
+          ? Math.min(...activeCoachings.map((c) => c.hourly_rate as number))
+          : null;
 
       const gameInfo: CoachGameInfo = {
         gameId: game.id,
@@ -120,7 +123,7 @@ export const useCoaches = () => {
         gameName: game.name,
         isCoach: true,
         playerRank: null,
-        hourlyRate: activeCoaching?.hourly_rate ?? null,
+        hourlyRate: minHourlyRate,
       };
 
       if (!existing) {

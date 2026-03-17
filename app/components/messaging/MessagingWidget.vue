@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import type { ConversationWithOther, MessageWithSender } from "~/composables/useMessaging";
+import type {
+  ConversationWithOther,
+  MessageWithSender,
+} from "~/composables/useMessaging";
 
 const props = defineProps<{
   open: boolean;
@@ -23,7 +26,11 @@ const {
 
 const view = ref<"list" | "conversation">("list");
 const currentConversationId = ref<string | null>(null);
-const currentOther = ref<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
+const currentOther = ref<{
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+} | null>(null);
 
 const conversations = ref<ConversationWithOther[]>([]);
 const messages = ref<MessageWithSender[]>([]);
@@ -34,6 +41,7 @@ const listError = ref<string | null>(null);
 const newMessageText = ref("");
 const sending = ref(false);
 let unsubscribeRealtime: (() => void) | null = null;
+const watchSeq = ref(0);
 
 const DEFAULT_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -53,15 +61,24 @@ async function loadConversations() {
 }
 
 async function openConversationWithCoach(coachId: string) {
+  loadingMessages.value = true;
+  listError.value = null;
   const conv = await getOrCreateConversation(coachId);
-  if (!conv) return;
+  if (!conv) {
+    loadingMessages.value = false;
+    return;
+  }
   const { data: profile } = await (client as any)
     .from("profiles")
     .select("id, full_name, avatar_url")
     .eq("id", coachId)
     .maybeSingle();
   currentOther.value = profile
-    ? { id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url }
+    ? {
+        id: profile.id,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+      }
     : { id: coachId, full_name: null, avatar_url: null };
   currentConversationId.value = conv.id;
   setActiveConversation(conv.id);
@@ -130,6 +147,19 @@ async function backToList() {
   await loadConversations();
 }
 
+function resetState() {
+  stopRealtime();
+  clearOpenWithCoach();
+  setActiveConversation(null);
+  view.value = "list";
+  currentConversationId.value = null;
+  currentOther.value = null;
+  messages.value = [];
+  listError.value = null;
+  sendError.value = null;
+  newMessageText.value = "";
+}
+
 async function handleSend() {
   const text = newMessageText.value.trim();
   const cid = currentConversationId.value;
@@ -152,22 +182,27 @@ async function handleSend() {
 }
 
 function handleClose() {
-  backToList();
   emit("close");
 }
 
 watch(
   () => [props.open, props.openWithCoachId] as const,
   async ([open, coachId]) => {
+    const seq = ++watchSeq.value;
     if (!open) {
-      backToList();
+      resetState();
       return;
     }
     if (coachId) {
+      // Forcer l'ouverture directe sur la conversation (sans passer par la liste)
+      view.value = "conversation";
+      messages.value = [];
       await openConversationWithCoach(coachId);
+      if (seq !== watchSeq.value) return;
     } else {
       view.value = "list";
       await loadConversations();
+      if (seq !== watchSeq.value) return;
     }
   },
   { immediate: true },
@@ -209,10 +244,7 @@ onUnmounted(() => {
             >
               <UIcon name="i-heroicons-arrow-left" class="h-5 w-5" />
             </button>
-            <h2
-              id="messaging-title"
-              class="text-lg font-bold text-white"
-            >
+            <h2 id="messaging-title" class="text-lg font-bold text-white">
               <span class="flex items-center gap-2">
                 <template v-if="view !== 'list'">
                   <img
@@ -222,7 +254,11 @@ onUnmounted(() => {
                   />
                 </template>
                 <span>
-                  {{ view === "list" ? "Messages" : (currentOther?.full_name ?? "Conversation") }}
+                  {{
+                    view === "list"
+                      ? "Messages"
+                      : (currentOther?.full_name ?? "Conversation")
+                  }}
                 </span>
               </span>
             </h2>
@@ -267,14 +303,16 @@ onUnmounted(() => {
             v-else-if="conversations.length === 0"
             class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-slate-500"
           >
-            <UIcon name="i-heroicons-chat-bubble-left-right" class="h-12 w-12 opacity-50" />
+            <UIcon
+              name="i-heroicons-chat-bubble-left-right"
+              class="h-12 w-12 opacity-50"
+            />
             <p class="text-sm">Aucune conversation.</p>
-            <p class="text-xs">Envoyez un message depuis le profil d’un coach.</p>
+            <p class="text-xs">
+              Envoyez un message depuis le profil d’un coach.
+            </p>
           </div>
-          <ul
-            v-else
-            class="flex-1 overflow-y-auto"
-          >
+          <ul v-else class="flex-1 overflow-y-auto">
             <li
               v-for="conv in conversations"
               :key="conv.id"
@@ -301,7 +339,10 @@ onUnmounted(() => {
                     {{ conv.lastMessage.content }}
                   </p>
                 </div>
-                <UIcon name="i-heroicons-chevron-right" class="h-5 w-5 shrink-0 text-slate-500" />
+                <UIcon
+                  name="i-heroicons-chevron-right"
+                  class="h-5 w-5 shrink-0 text-slate-500"
+                />
               </button>
             </li>
           </ul>
@@ -317,18 +358,15 @@ onUnmounted(() => {
               class="h-8 w-8 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-500"
             />
           </div>
-          <div
-            v-else
-            class="flex flex-1 flex-col overflow-hidden"
-          >
-            <div
-              class="flex-1 space-y-3 overflow-y-auto p-4"
-            >
+          <div v-else class="flex flex-1 flex-col overflow-hidden">
+            <div class="flex-1 space-y-3 overflow-y-auto p-4">
               <div
                 v-for="msg in messages"
                 :key="msg.id"
                 class="flex gap-3"
-                :class="msg.sender_id === currentUserId ? 'flex-row-reverse' : ''"
+                :class="
+                  msg.sender_id === currentUserId ? 'flex-row-reverse' : ''
+                "
               >
                 <img
                   :src="msg.sender?.avatar_url || DEFAULT_AVATAR"
@@ -341,23 +379,25 @@ onUnmounted(() => {
                     msg.sender_id === currentUserId
                       ? 'bg-teal-500/20 text-white'
                       : 'bg-white/10 text-slate-200'
-                 "
+                  "
                 >
-                  <p class="text-sm whitespace-pre-wrap break-words">{{ msg.content }}</p>
-                  <p
-                    class="mt-1 text-[10px] opacity-70"
-                  >
-                    {{ new Date(msg.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) }}
+                  <p class="text-sm whitespace-pre-wrap break-words">
+                    {{ msg.content }}
+                  </p>
+                  <p class="mt-1 text-[10px] opacity-70">
+                    {{
+                      new Date(msg.created_at).toLocaleTimeString("fr-FR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    }}
                   </p>
                 </div>
               </div>
             </div>
 
             <div class="shrink-0 border-t border-white/10 p-3">
-              <form
-                class="flex gap-2"
-                @submit.prevent="handleSend"
-              >
+              <form class="flex gap-2" @submit.prevent="handleSend">
                 <input
                   v-model="newMessageText"
                   type="text"
@@ -374,10 +414,7 @@ onUnmounted(() => {
                   <UIcon name="i-heroicons-paper-airplane" class="h-5 w-5" />
                 </button>
               </form>
-              <p
-                v-if="sendError"
-                class="mt-2 text-xs text-rose-400"
-              >
+              <p v-if="sendError" class="mt-2 text-xs text-rose-400">
                 {{ sendError }}
               </p>
             </div>

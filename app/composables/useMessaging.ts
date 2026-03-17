@@ -58,17 +58,38 @@ export const useMessaging = () => {
     if (!uid) return null;
     if (uid === coachId) return null;
 
-    const { data, error } = await (client as any)
+    const lowId = uid < coachId ? uid : coachId;
+    const highId = uid < coachId ? coachId : uid;
+
+    // 1) Tenter de récupérer la conversation existante (évite l'UPDATE implicit de upsert + RLS)
+    const { data: existing, error: existingError } = await (client as any)
       .from("conversations")
-      .upsert(
-        { student_id: uid, coach_id: coachId },
-        { onConflict: "user_low_id,user_high_id" },
-      )
+      .select("id")
+      .eq("user_low_id", lowId)
+      .eq("user_high_id", highId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (existing) return { id: existing.id };
+
+    // 2) Sinon créer. La contrainte DB empêche les doublons, donc en cas de race on re-select.
+    const { data: inserted, error: insertError } = await (client as any)
+      .from("conversations")
+      .insert({ student_id: uid, coach_id: coachId })
       .select("id")
       .single();
 
-    if (error) throw error;
-    return data ? { id: data.id } : null;
+    if (!insertError && inserted) return { id: inserted.id };
+
+    // 3) Si la création échoue (ex: conflit), on re-select l'existant.
+    const { data: after, error: afterError } = await (client as any)
+      .from("conversations")
+      .select("id")
+      .eq("user_low_id", lowId)
+      .eq("user_high_id", highId)
+      .maybeSingle();
+    if (afterError) throw afterError;
+    return after ? { id: after.id } : null;
   };
 
   /** Liste les conversations de l'utilisateur (élève ou coach) avec l'autre profil et dernier message */

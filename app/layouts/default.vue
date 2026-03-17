@@ -1,5 +1,13 @@
 <script setup lang="ts">
-const { isOpen, openWithCoachId, hasUnread, setOpen, clearOpenWithCoach, markUnread, activeConversationId } = useMessagingPanel();
+const {
+  isOpen,
+  openWithCoachId,
+  hasUnread,
+  setOpen,
+  clearOpenWithCoach,
+  markUnread,
+  activeConversationId,
+} = useMessagingPanel();
 const user = useSupabaseUser();
 const client = useSupabaseClient();
 
@@ -26,7 +34,8 @@ const setupGlobalMessageNotifications = () => {
       if (newMsg.sender_id === uid) return;
 
       // Ignore si la conversation est déjà ouverte
-      if (isOpen.value && activeConversationId.value === newMsg.conversation_id) return;
+      if (isOpen.value && activeConversationId.value === newMsg.conversation_id)
+        return;
 
       // Vérifier que l'utilisateur est bien participant à la conversation
       const { data: conv } = await (client as any)
@@ -89,7 +98,7 @@ onUnmounted(() => {
           <UIcon name="i-heroicons-chat-bubble-left-right" class="h-6 w-6" />
           <span
             v-if="hasUnread && !isOpen"
-            class="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-rose-500 ring-2 ring-[#050812]"
+            class="absolute right-0 top-0 h-2 w-2 translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-400/80 ring-2 ring-[#050812]"
           />
         </span>
       </button>
@@ -98,7 +107,10 @@ onUnmounted(() => {
       <MessagingWidget
         :open="isOpen"
         :open-with-coach-id="openWithCoachId"
-        @close="setOpen(false); clearOpenWithCoach()"
+        @close="
+          setOpen(false);
+          clearOpenWithCoach();
+        "
       />
     </div>
   </div>

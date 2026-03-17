@@ -23,7 +23,8 @@ const client = useSupabaseClient();
 const gameOptions = ref<GameOption[]>([]);
 const gameName = ref<string | null>(null);
 
-const { loading, error, results, filters, loadCoaches, setGameFilter } = useCoaches();
+const { loading, error, results, filters, loadCoaches, setGameFilter } =
+  useCoaches();
 
 const setSearchText = (value: string) => {
   filters.value.searchText = value;
@@ -72,20 +73,23 @@ onMounted(async () => {
     <!-- Header -->
     <header class="mb-10 space-y-3">
       <NuxtLink
-        to="/sessions"
+        to="/"
         class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
       >
         <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
         Changer de jeu
       </NuxtLink>
-      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+      <p
+        class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80"
+      >
         CoachMe · Trouver un coach
       </p>
       <h1 class="text-3xl font-black text-white md:text-4xl">
         Coachs {{ gameName ?? gameSlug }}
       </h1>
       <p class="max-w-xl text-sm text-slate-400">
-        Filtre par nom ou bio et explore les profils pour trouver le coach qui te correspond.
+        Filtre par nom ou bio et explore les profils pour trouver le coach qui
+        te correspond.
       </p>
     </header>
 
@@ -107,8 +111,13 @@ onMounted(async () => {
         {{ error }}
       </div>
 
-      <div v-if="loading" class="flex items-center gap-3 text-sm text-slate-500">
-        <div class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500" />
+      <div
+        v-if="loading"
+        class="flex items-center gap-3 text-sm text-slate-500"
+      >
+        <div
+          class="h-4 w-4 animate-spin rounded-full border-2 border-teal-500/20 border-t-teal-500"
+        />
         Chargement des coachs…
       </div>
 
@@ -116,8 +125,13 @@ onMounted(async () => {
         v-else-if="!results.length"
         class="rounded-3xl border border-white/5 bg-white/[0.02] p-12 text-center"
       >
-        <UIcon name="i-heroicons-user-group" class="mx-auto mb-3 h-8 w-8 text-slate-600" />
-        <p class="text-sm text-slate-500">Aucun coach trouvé pour ce jeu avec les filtres actuels.</p>
+        <UIcon
+          name="i-heroicons-user-group"
+          class="mx-auto mb-3 h-8 w-8 text-slate-600"
+        />
+        <p class="text-sm text-slate-500">
+          Aucun coach trouvé pour ce jeu avec les filtres actuels.
+        </p>
       </div>
 
       <div v-else class="grid gap-4 md:grid-cols-2">

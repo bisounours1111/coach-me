@@ -32,10 +32,17 @@ const sanitizeOffers = (offers: CoachingOffer[]): CoachingOffer[] =>
           ? null
           : Number(offer.hourlyRate),
       description: String(offer.description ?? "").trim(),
-      videoUrls: (offer.videoUrls ?? []).map((url) => url.trim()).filter(Boolean),
+      videoUrls: (offer.videoUrls ?? [])
+        .map((url) => url.trim())
+        .filter(Boolean),
       isActive: offer.isActive !== false,
     }))
-    .filter((offer) => offer.hourlyRate !== null || offer.description || offer.videoUrls.length > 0);
+    .filter(
+      (offer) =>
+        offer.hourlyRate !== null ||
+        offer.description ||
+        offer.videoUrls.length > 0,
+    );
 
 const defaultOffer = (): CoachingOffer => ({
   hourlyRate: null,
@@ -57,7 +64,9 @@ export const useCoachGames = () => {
     return (data ?? []) as GameOption[];
   };
 
-  const getCoachGameRoles = async (userId: string): Promise<CoachGameRole[]> => {
+  const getCoachGameRoles = async (
+    userId: string,
+  ): Promise<CoachGameRole[]> => {
     const { data: roleRows, error: rolesError } = await (client as any)
       .from("profile_game_roles")
       .select("id,game_id,is_coach,player_rank_id,games(id,name)")
@@ -77,7 +86,9 @@ export const useCoachGames = () => {
         .in("id", rankIds);
       if (ranksError) throw ranksError;
       rankLabelById = new Map(
-        ((rankRows ?? []) as Array<{ id: string; label: string }>).map((rank) => [rank.id, rank.label]),
+        ((rankRows ?? []) as Array<{ id: string; label: string }>).map(
+          (rank) => [rank.id, rank.label],
+        ),
       );
     }
 
@@ -89,7 +100,7 @@ export const useCoachGames = () => {
       isCoach: row.is_coach,
       playerRankId: normalizeUuid(row.player_rank_id),
       playerRankLabel: normalizeUuid(row.player_rank_id)
-        ? rankLabelById.get(String(row.player_rank_id)) ?? ""
+        ? (rankLabelById.get(String(row.player_rank_id)) ?? "")
         : "",
       offers: [] as CoachingOffer[],
     }));
@@ -99,7 +110,9 @@ export const useCoachGames = () => {
 
     const { data: coachingRows, error: coachingsError } = await (client as any)
       .from("coachings")
-      .select("id,profile_game_role_id,description,video_urls,hourly_rate,is_active")
+      .select(
+        "id,profile_game_role_id,description,video_urls,hourly_rate,is_active",
+      )
       .in("profile_game_role_id", roleIds);
     if (coachingsError) throw coachingsError;
 
@@ -110,10 +123,15 @@ export const useCoachGames = () => {
       offers.push({
         id: String(row.id),
         profileGameRoleId: roleId,
-        hourlyRate: row.hourly_rate === null || row.hourly_rate === undefined ? null : Number(row.hourly_rate),
+        hourlyRate:
+          row.hourly_rate === null || row.hourly_rate === undefined
+            ? null
+            : Number(row.hourly_rate),
         description: String(row.description ?? ""),
         videoUrls: Array.isArray(row.video_urls)
-          ? row.video_urls.map((url: unknown) => String(url ?? "").trim()).filter(Boolean)
+          ? row.video_urls
+              .map((url: unknown) => String(url ?? "").trim())
+              .filter(Boolean)
           : [],
         isActive: row.is_active !== false,
       });
@@ -148,7 +166,10 @@ export const useCoachGames = () => {
     return grouped;
   };
 
-  const upsertCoachGameRoles = async (userId: string, payload: CoachGameRolePayload[]) => {
+  const upsertCoachGameRoles = async (
+    userId: string,
+    payload: CoachGameRolePayload[],
+  ) => {
     const selectedRoles = payload.map((role) => ({
       gameId: role.gameId,
       isCoach: role.isCoach,
@@ -163,8 +184,12 @@ export const useCoachGames = () => {
       .eq("profile_id", userId);
     if (existingError) throw existingError;
 
-    const existingGameIds = ((existingRows ?? []) as Array<{ game_id: string }>).map((row) => row.game_id);
-    const toDelete = existingGameIds.filter((gameId) => !selectedGameIds.includes(gameId));
+    const existingGameIds = (
+      (existingRows ?? []) as Array<{ game_id: string }>
+    ).map((row) => row.game_id);
+    const toDelete = existingGameIds.filter(
+      (gameId) => !selectedGameIds.includes(gameId),
+    );
     if (toDelete.length) {
       const { error } = await (client as any)
         .from("profile_game_roles")
@@ -190,7 +215,11 @@ export const useCoachGames = () => {
       .select("id,game_id,is_coach");
     if (upsertError) throw upsertError;
 
-    for (const role of (upsertedRows ?? []) as Array<{ id: string; game_id: string; is_coach: boolean }>) {
+    for (const role of (upsertedRows ?? []) as Array<{
+      id: string;
+      game_id: string;
+      is_coach: boolean;
+    }>) {
       const source = selectedRoles.find((item) => item.gameId === role.game_id);
       if (!source) continue;
 
@@ -203,15 +232,17 @@ export const useCoachGames = () => {
       if (!role.is_coach) continue;
 
       const offers = source.offers.length ? source.offers : [defaultOffer()];
-      const { error: insertError } = await (client as any).from("coachings").insert(
-        offers.map((offer) => ({
-          profile_game_role_id: role.id,
-          description: offer.description.trim() || null,
-          video_urls: offer.videoUrls.length ? offer.videoUrls : null,
-          hourly_rate: offer.hourlyRate,
-          is_active: offer.isActive !== false,
-        })),
-      );
+      const { error: insertError } = await (client as any)
+        .from("coachings")
+        .insert(
+          offers.map((offer) => ({
+            profile_game_role_id: role.id,
+            description: offer.description.trim() || null,
+            video_urls: offer.videoUrls.length ? offer.videoUrls : null,
+            hourly_rate: offer.hourlyRate,
+            is_active: offer.isActive !== false,
+          })),
+        );
       if (insertError) throw insertError;
     }
   };

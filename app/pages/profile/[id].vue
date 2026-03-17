@@ -132,6 +132,13 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                 <!-- Section Header -->
                 <div class="flex items-center gap-6">
                   <div
+                    v-if="game.gameIconUrl"
+                    class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl shadow-teal-950/20"
+                  >
+                    <img :src="game.gameIconUrl" :alt="game.gameName" class="h-full w-full object-cover" />
+                  </div>
+                  <div
+                    v-else
                     class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
                   >
                     {{ game.gameName.charAt(0) }}

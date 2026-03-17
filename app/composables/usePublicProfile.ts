@@ -10,6 +10,7 @@ export type PublicProfileGame = {
   profileGameRoleId: string;
   gameId: string;
   gameName: string;
+  gameIconUrl: string | null;
   isCoach: boolean;
   playerRankLabel: string | null;
 };
@@ -58,7 +59,7 @@ export const usePublicProfile = () => {
 
     const { data: roleRows, error: rolesError } = await (client as any)
       .from("profile_game_roles")
-      .select("id,game_id,is_coach,player_rank_id,games(name)")
+      .select("id,game_id,is_coach,player_rank_id,games(name,icon_url)")
       .eq("profile_id", profileId);
     if (rolesError) throw rolesError;
 
@@ -85,6 +86,7 @@ export const usePublicProfile = () => {
       profileGameRoleId: String(row.id),
       gameId: String(row.game_id),
       gameName: String(row.games?.name ?? "Jeu"),
+      gameIconUrl: row.games?.icon_url ? String(row.games.icon_url) : null,
       isCoach: Boolean(row.is_coach),
       playerRankLabel: row.player_rank_id
         ? (rankLabelById.get(String(row.player_rank_id)) ?? null)

@@ -258,7 +258,7 @@ const openMessagingWithCoach = () => {
           <div class="mt-12 flex flex-wrap items-center justify-between gap-6">
             <div class="flex gap-4">
               <button
-                v-if="!isOwnProfileComputed"
+                v-if="!isOwnProfileComputed && coachGamesCount > 0"
                 type="button"
                 class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"
                 @click="openMessagingWithCoach"

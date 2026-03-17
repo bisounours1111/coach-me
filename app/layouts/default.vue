@@ -1,8 +1,57 @@
 <script setup lang="ts">
-const { isOpen, openWithCoachId, setOpen, clearOpenWithCoach } = useMessagingPanel();
+const { isOpen, openWithCoachId, hasUnread, setOpen, clearOpenWithCoach, markUnread, activeConversationId } = useMessagingPanel();
 const user = useSupabaseUser();
+const client = useSupabaseClient();
 
 const showMessagingButton = computed(() => !!user.value);
+
+let unsubscribeGlobalMessages: (() => void) | null = null;
+
+const setupGlobalMessageNotifications = () => {
+  if (unsubscribeGlobalMessages) {
+    unsubscribeGlobalMessages();
+    unsubscribeGlobalMessages = null;
+  }
+
+  const uid = (user.value as any)?.id ?? (user.value as any)?.sub ?? null;
+  if (!uid) return;
+
+  const ch = (client as any).channel(`messages:inbox:${uid}`);
+  ch.on(
+    "postgres_changes",
+    { event: "INSERT", schema: "public", table: "messages" },
+    async (payload: any) => {
+      const newMsg = payload?.new;
+      if (!newMsg?.conversation_id) return;
+      if (newMsg.sender_id === uid) return;
+
+      // Ignore si la conversation est déjà ouverte
+      if (isOpen.value && activeConversationId.value === newMsg.conversation_id) return;
+
+      // Vérifier que l'utilisateur est bien participant à la conversation
+      const { data: conv } = await (client as any)
+        .from("conversations")
+        .select("id, student_id, coach_id")
+        .eq("id", newMsg.conversation_id)
+        .maybeSingle();
+
+      if (!conv) return;
+      if (conv.student_id !== uid && conv.coach_id !== uid) return;
+
+      markUnread();
+    },
+  ).subscribe();
+
+  unsubscribeGlobalMessages = () => {
+    (client as any).removeChannel(ch);
+  };
+};
+
+watch(user, () => setupGlobalMessageNotifications(), { immediate: true });
+
+onUnmounted(() => {
+  if (unsubscribeGlobalMessages) unsubscribeGlobalMessages();
+});
 </script>
 
 <template>
@@ -36,7 +85,13 @@ const showMessagingButton = computed(() => !!user.value);
         aria-label="Ouvrir la messagerie"
         @click="setOpen(!isOpen)"
       >
-        <UIcon name="i-heroicons-chat-bubble-left-right" class="h-6 w-6" />
+        <span class="relative">
+          <UIcon name="i-heroicons-chat-bubble-left-right" class="h-6 w-6" />
+          <span
+            v-if="hasUnread && !isOpen"
+            class="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-rose-500 ring-2 ring-[#050812]"
+          />
+        </span>
       </button>
 
       <!-- Pop-up messagerie -->

@@ -62,7 +62,7 @@ export const useMessaging = () => {
       .from("conversations")
       .upsert(
         { student_id: uid, coach_id: coachId },
-        { onConflict: "student_id,coach_id" },
+        { onConflict: "user_low_id,user_high_id" },
       )
       .select("id")
       .single();

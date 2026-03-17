@@ -11,7 +11,7 @@ const emit = defineEmits<{
 }>();
 
 const client = useSupabaseClient();
-const { clearOpenWithCoach } = useMessagingPanel();
+const { clearOpenWithCoach, setActiveConversation } = useMessagingPanel();
 const {
   getCurrentUserId,
   getOrCreateConversation,
@@ -64,6 +64,7 @@ async function openConversationWithCoach(coachId: string) {
     ? { id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url }
     : { id: coachId, full_name: null, avatar_url: null };
   currentConversationId.value = conv.id;
+  setActiveConversation(conv.id);
   view.value = "conversation";
   await loadMessages(conv.id);
   startRealtime(conv.id);
@@ -111,6 +112,7 @@ function stopRealtime() {
 
 async function selectConversation(conv: ConversationWithOther) {
   currentConversationId.value = conv.id;
+  setActiveConversation(conv.id);
   currentOther.value = conv.other;
   view.value = "conversation";
   await loadMessages(conv.id);
@@ -120,6 +122,7 @@ async function selectConversation(conv: ConversationWithOther) {
 async function backToList() {
   stopRealtime();
   clearOpenWithCoach();
+  setActiveConversation(null);
   view.value = "list";
   currentConversationId.value = null;
   currentOther.value = null;
@@ -210,7 +213,18 @@ onUnmounted(() => {
               id="messaging-title"
               class="text-lg font-bold text-white"
             >
-              {{ view === "list" ? "Messages" : (currentOther?.full_name ?? "Conversation") }}
+              <span class="flex items-center gap-2">
+                <template v-if="view !== 'list'">
+                  <img
+                    :src="currentOther?.avatar_url || DEFAULT_AVATAR"
+                    :alt="currentOther?.full_name ?? ''"
+                    class="h-7 w-7 rounded-full object-cover ring-1 ring-white/10"
+                  />
+                </template>
+                <span>
+                  {{ view === "list" ? "Messages" : (currentOther?.full_name ?? "Conversation") }}
+                </span>
+              </span>
             </h2>
           </div>
           <button

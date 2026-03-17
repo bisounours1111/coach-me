@@ -2,6 +2,40 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getSupabaseAdmin } from "../_shared/supabase.ts";
 import { generateSessionActionToken } from "../_shared/session_token.ts";
 
+const TOKEN_EXPIRY_DAYS = 7;
+
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function randomBase64url(bytesLength: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(bytesLength));
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Génère un token one-time stocké en DB (ne dépend pas du secret partagé). */
+async function generateDbSessionActionToken(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  sessionId: string,
+  action: "confirm" | "cancel"
+): Promise<string> {
+  const plainToken = randomBase64url(32);
+  const tokenHash = await sha256Hex(plainToken);
+  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await supabase.from("session_action_tokens").upsert(
+    { session_id: sessionId, action, token_hash: tokenHash, expires_at: expiresAt },
+    { onConflict: "session_id,action" }
+  );
+  if (error) throw new Error(error.message);
+  return plainToken;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -93,9 +127,9 @@ function buildCoachPaidHtml(
       <li><strong>Email apprenti :</strong> ${payload.student_email}</li>
     </ul>
     <p><strong>Confirmer ou annuler la session :</strong></p>
-    <p>
-      <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;margin-right:8px;">Confirmer la session</a>
-      <a href="${cancelUrl}" style="display:inline-block;padding:12px 24px;background:#ef4444;color:#fff;text-decoration:none;border-radius:8px;">Annuler la session</a>
+    <p style="margin:20px 0;">
+      <a href="${confirmUrl}" style="display:inline-block;padding:14px 28px;background:#0d9488;color:#fff;text-decoration:none;border-radius:12px;margin-right:12px;font-weight:600;font-size:15px;box-shadow:0 2px 8px rgba(13,148,136,0.3);">Confirmer la session</a>
+      <a href="${cancelUrl}" style="display:inline-block;padding:14px 28px;background:transparent;color:#94a3b8;text-decoration:none;border-radius:12px;border:2px solid #475569;font-weight:600;font-size:15px;">Annuler la session</a>
     </p>
     <p style="color:#666;font-size:14px;">En annulant, l’apprenti sera notifié et le paiement sera remboursé.</p>
     ${htmlFooter()}
@@ -269,10 +303,15 @@ serve(async (req: Request) => {
     let confirmUrl = "";
     let cancelUrl = "";
     try {
-      confirmUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "confirm"))}`;
-      cancelUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "cancel"))}`;
+      confirmUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateDbSessionActionToken(supabase, session_id, "confirm"))}`;
+      cancelUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateDbSessionActionToken(supabase, session_id, "cancel"))}`;
     } catch (e) {
-      console.warn("session_action tokens skipped", (e as Error).message);
+      try {
+        confirmUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "confirm"))}`;
+        cancelUrl = `${functionsBaseUrl}/session-action?token=${encodeURIComponent(await generateSessionActionToken(session_id, "cancel"))}`;
+      } catch (e2) {
+        console.warn("session_action tokens skipped", (e2 as Error).message);
+      }
     }
 
     const events: { event_type: string; to_email: string; subject: string; html: string }[] = [];

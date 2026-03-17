@@ -188,6 +188,9 @@ onMounted(async () => {
             <p class="text-lg font-black text-white">
               {{ s.game || "Coaching" }}
             </p>
+            <p class="text-sm text-teal-400/90">
+              Coach : {{ s.coach_name ?? "—" }}
+            </p>
             <p class="text-sm text-slate-400">
               {{ formatDateTime(s.start_at) }}
               <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>

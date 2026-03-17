@@ -1,6 +1,7 @@
 <template>
-  <form class="space-y-4" @submit.prevent="emitSubmit">
+  <form class="space-y-4 w-full flex flex-col items-center" @submit.prevent="emitSubmit">
     <AuthTextField
+      class="w-full"
       :model-value="localEmail"
       id="email"
       label="Email"
@@ -12,6 +13,7 @@
     />
 
     <AuthPasswordField
+      class="w-full"
       :model-value="localPassword"
       id="password"
       label="Mot de passe"
@@ -23,12 +25,12 @@
 
     <div
       v-if="errorMessage"
-      class="rounded-xl border border-[#f43f5e]/35 bg-[#f43f5e]/10 px-3 py-2 text-xs text-rose-100/90"
+      class="w-full rounded-xl border border-[#f43f5e]/35 bg-[#f43f5e]/10 px-3 py-2 text-xs text-rose-100/90"
     >
       {{ errorMessage }}
     </div>
 
-    <AuthSubmitButton :loading="loading">
+    <AuthSubmitButton class="w-full" :loading="loading">
       <slot name="submit-label">Continuer</slot>
     </AuthSubmitButton>
   </form>

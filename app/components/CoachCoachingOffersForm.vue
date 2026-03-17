@@ -42,9 +42,9 @@
                 Offre {{ index + 1 }}
               </p>
               <button
+                v-if="role.offers.length > 1"
                 type="button"
                 class="text-[0.7rem] text-rose-200/85 transition hover:text-rose-100"
-                :disabled="role.offers.length <= 1"
                 @click="removeOffer(role.gameId, index)"
               >
                 Supprimer

@@ -11,17 +11,18 @@ const authUserId = ref<string | null>(null);
 
 // Récupération robuste de l'ID utilisateur connecté
 onMounted(async () => {
-  if (user.value) {
-    authUserId.value = user.value.id;
+  const userId = user.value?.id || user.value?.sub;
+  if (userId) {
+    authUserId.value = userId;
   } else {
     const { data } = await client.auth.getUser();
-    authUserId.value = data.user?.id ?? null;
+    authUserId.value = data.user?.id || (data.user as any)?.sub || null;
   }
 });
 
 const isOwnProfile = computed(() => {
-  const currentId = user.value?.sub || authUserId.value;
-  const targetId = profile.value?.id;
+  const currentId = user.value?.id || user.value?.sub || authUserId.value;
+  const targetId = profile.value?.id || profile.value?.sub;
   if (!currentId || !targetId) return false;
   return String(currentId).toLowerCase() === String(targetId).toLowerCase();
 });

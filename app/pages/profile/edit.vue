@@ -285,9 +285,10 @@ const load = async (userId: string) => {
 };
 
 const resolveUserId = async (): Promise<string | null> => {
-  if (user.value?.id) return user.value.id;
+  const stateUserId = user.value?.id || user.value?.sub;
+  if (stateUserId) return stateUserId;
   const authUser = (await client.auth.getUser()).data.user;
-  return authUser?.id ?? null;
+  return authUser?.id || (authUser as any)?.sub || null;
 };
 
 onMounted(async () => {
@@ -302,7 +303,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => user.value?.id,
+  () => user.value?.id || user.value?.sub,
   async (id) => {
     if (!id) return;
     activeUserId.value = id;

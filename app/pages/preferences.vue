@@ -82,8 +82,8 @@ import type {
   GameOption,
   GameRankOption,
   ProfileFieldErrors,
-} from "../../types/profile";
-import { useCoachGames } from "../../composables/useCoachGames";
+} from "../types/profile";
+import { useCoachGames } from "../composables/useCoachGames";
 
 // Suppression de definePageMeta pour utiliser le layout par défaut
 // definePageMeta({ layout: "auth" });
@@ -136,8 +136,8 @@ const hydrateRoles = (
 
 const loadData = async () => {
   // On ne charge que si on a un ID et qu'on n'est pas déjà en train de charger
-
-  if (!user.value?.sub) return;
+  const userId = user.value?.id || user.value?.sub;
+  if (!userId) return;
 
   // Si on a déjà des jeux chargés, on ne recharge pas (évite la boucle avec le watch)
   if (availableGames.value.length > 0 && gameRoles.value.length > 0) {
@@ -150,7 +150,7 @@ const loadData = async () => {
     const [games, ranks, roles] = await Promise.all([
       getAvailableGames(),
       getGameRanks(),
-      getCoachGameRoles(user.value.sub),
+      getCoachGameRoles(userId),
     ]);
 
     availableGames.value = games;
@@ -171,7 +171,8 @@ const onValidate = () => {
 };
 
 const onSave = async () => {
-  if (saving.value || !user.value?.sub) return;
+  const userId = user.value?.id || user.value?.sub;
+  if (saving.value || !userId) return;
 
   const selectedRoles = gameRoles.value.filter((r) => r.selected);
   if (selectedRoles.length === 0) {
@@ -184,7 +185,7 @@ const onSave = async () => {
 
   try {
     await upsertCoachGameRoles(
-      user.value.sub,
+      userId,
       gameRoles.value
         .filter((r) => r.selected)
         .map((r) => ({
@@ -214,7 +215,7 @@ onMounted(loadData);
 
 // Re-charger les données si l'utilisateur change ou devient disponible
 watch(
-  () => user.value?.sub,
+  () => user.value?.id || user.value?.sub,
   (newId) => {
     if (newId) {
       loadData();

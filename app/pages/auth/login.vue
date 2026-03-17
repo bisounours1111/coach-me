@@ -114,13 +114,11 @@ const onSubmit = async () => {
       isCoach,
     });
 
-    if (isCoach) {
-      await router.push("/dashboard/coach");
-    } else if (hasAnyGame) {
-      await router.push("/dashboard/student");
-    } else {
-      await router.push("/onboarding/preferences");
+    if (isCoach || hasAnyGame) {
+      await router.push("/");
     }
+
+    await router.push("/preferences");
   } catch (err: any) {
     errorMessage.value =
       err?.message || "Impossible de se connecter. Vérifie tes identifiants.";

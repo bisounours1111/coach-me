@@ -1,8 +1,15 @@
-import type { CoachFilters, CoachGameInfo, CoachSearchResult } from "~/types/coach";
+import type {
+  CoachFilters,
+  CoachGameInfo,
+  CoachSearchResult,
+} from "~/types/coach";
 
 const MAX_BIO_LENGTH = 140;
 
-const truncate = (value: string | null | undefined, max = MAX_BIO_LENGTH): string | null => {
+const truncate = (
+  value: string | null | undefined,
+  max = MAX_BIO_LENGTH,
+): string | null => {
   if (!value) return null;
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1)}…`;
@@ -72,10 +79,19 @@ export const useCoaches = () => {
     }
 
     type Row = {
-      profiles: { id: string; full_name: string | null; avatar_url: string | null; bio: string | null } | null;
+      profiles: {
+        id: string;
+        full_name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      } | null;
       games: { id: string; slug: string; name: string } | null;
       player_rank_id: string | null;
-      coachings: Array<{ id: string; hourly_rate: number | null; is_active: boolean }> | null;
+      coachings: Array<{
+        id: string;
+        hourly_rate: number | null;
+        is_active: boolean;
+      }> | null;
     };
 
     const rawRows = (data ?? []) as Row[];
@@ -91,7 +107,9 @@ export const useCoaches = () => {
       const existing = byProfile.get(profileId);
 
       const activeCoaching =
-        row.coachings?.find((c) => c.is_active && c.hourly_rate != null) ?? row.coachings?.[0] ?? null;
+        row.coachings?.find((c) => c.is_active && c.hourly_rate != null) ??
+        row.coachings?.[0] ??
+        null;
 
       const gameInfo: CoachGameInfo = {
         gameId: game.id,

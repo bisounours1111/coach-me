@@ -1,4 +1,4 @@
-export type UserRole = "user" | "student" | "coach" | "maintainer";
+export type UserRole = "user" | "maintainer";
 
 export interface Profile {
   id: string;
@@ -6,4 +6,3 @@ export interface Profile {
   full_name?: string | null;
   avatar_url?: string | null;
 }
-

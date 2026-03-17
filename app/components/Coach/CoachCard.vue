@@ -100,7 +100,7 @@ const initials = computed(() => {
         <span v-else class="text-slate-600">Tarif à définir</span>
       </div>
       <NuxtLink
-        :to="`/profile/${coach.profileId}`"
+        :to="selectedGameSlug ? `/profile/${coach.profileId}?game=${selectedGameSlug}` : `/profile/${coach.profileId}`"
         class="inline-flex items-center gap-1.5 rounded-xl bg-teal-500 px-4 py-2 text-xs font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
       >
         Voir le profil

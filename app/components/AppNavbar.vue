@@ -19,6 +19,21 @@ const userProfile = ref<{
 
 const dropdownRef = ref<HTMLElement | null>(null);
 
+const dashboardShortcuts = computed(() => {
+  return [
+    {
+      to: "/dashboard/coach",
+      label: "Panel coach",
+      icon: "i-lucide-layout-dashboard",
+    },
+    {
+      to: "/dashboard/student",
+      label: "Panel élève",
+      icon: "i-lucide-graduation-cap",
+    },
+  ] as const;
+});
+
 if (import.meta.client) {
   onClickOutside(dropdownRef, () => {
     isUserDropdownOpen.value = false;
@@ -124,6 +139,18 @@ watch(
                   class="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-slate-800 bg-slate-900 p-1 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none"
                 >
                   <NuxtLink
+                    v-for="l in dashboardShortcuts"
+                    :key="l.to"
+                    :to="l.to"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    @click="isUserDropdownOpen = false"
+                  >
+                    <div class="h-4 w-4" :class="l.icon" />
+                    {{ l.label }}
+                  </NuxtLink>
+                  <div class="my-1 border-t border-slate-800" />
+
+                  <NuxtLink
                     :to="`/profile/${user.id || user.sub}`"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                     @click="isUserDropdownOpen = false"
@@ -150,6 +177,14 @@ watch(
                       Dashboard Admin
                     </NuxtLink>
                   </template>
+                  <NuxtLink
+                    to="/legal/privacy"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                    @click="isUserDropdownOpen = false"
+                  >
+                    <div class="h-4 w-4 i-lucide-shield" />
+                    Confidentialité
+                  </NuxtLink>
                   <div class="my-1 border-t border-slate-800" />
                   <button
                     @click="logout"
@@ -232,6 +267,21 @@ watch(
 
           <div class="space-y-1">
             <NuxtLink
+              v-for="l in dashboardShortcuts"
+              :key="l.to"
+              :to="l.to"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+              @click="isMobileMenuOpen = false"
+            >
+              <div class="h-5 w-5" :class="l.icon" />
+              {{ l.label }}
+            </NuxtLink>
+            <div
+              v-if="dashboardShortcuts.length"
+              class="my-1 border-t border-slate-800"
+            />
+
+            <NuxtLink
               :to="`/profile/${user.id || user.sub}`"
               class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
               @click="isMobileMenuOpen = false"
@@ -287,6 +337,18 @@ watch(
             </NuxtLink>
           </div>
         </template>
+
+        <!-- Lien confidentialité (toujours visible) -->
+        <div class="border-t border-slate-800 pt-3">
+          <NuxtLink
+            to="/legal/privacy"
+            class="flex items-center gap-2 px-3 py-2 text-xs text-slate-600 hover:text-slate-400 transition-colors"
+            @click="isMobileMenuOpen = false"
+          >
+            <UIcon name="i-heroicons-shield-check" class="h-3.5 w-3.5" />
+            Politique de confidentialité
+          </NuxtLink>
+        </div>
       </div>
     </Transition>
   </nav>

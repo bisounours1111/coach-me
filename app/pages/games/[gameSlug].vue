@@ -10,10 +10,6 @@ type GameOption = {
 const route = useRoute();
 const gameSlug = computed(() => (route.params.gameSlug as string) ?? "");
 
-definePageMeta({
-  middleware: ["auth"],
-});
-
 useHead({
   title: "Trouver un coach · CoachMe",
 });

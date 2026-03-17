@@ -54,13 +54,53 @@
         class="rounded-2xl border border-white/10 bg-[#0b0f19]/45 p-5 backdrop-blur"
       >
         <div
-          class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-          <div>
-            <p class="text-sm font-semibold text-slate-50">{{ game.name }}</p>
-            <p class="text-[0.7rem] uppercase tracking-wide text-slate-300/70">
-              {{ game.slug }}
-            </p>
+          <div class="flex items-center gap-4">
+            <div
+              class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5"
+            >
+              <img
+                v-if="game.icon_url"
+                :src="game.icon_url"
+                class="h-full w-full object-cover"
+              />
+              <div
+                v-else
+                class="flex h-full w-full items-center justify-center text-slate-500"
+              >
+                <UIcon name="i-heroicons-puzzle-piece" class="h-6 w-6" />
+              </div>
+              <div
+                v-if="loadingIconByGame[game.id]"
+                class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              >
+                <UIcon
+                  name="i-heroicons-arrow-path"
+                  class="h-5 w-5 animate-spin text-teal-400"
+                />
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-slate-50">{{ game.name }}</p>
+                <label
+                  class="cursor-pointer text-[0.65rem] text-teal-400 hover:text-teal-300"
+                >
+                  <UIcon name="i-heroicons-pencil-square" class="h-3 w-3" />
+                  <input
+                    type="file"
+                    class="hidden"
+                    accept="image/*"
+                    :disabled="loadingIconByGame[game.id]"
+                    @change="onUploadGameIcon($event, game)"
+                  />
+                </label>
+              </div>
+              <p class="text-[0.7rem] uppercase tracking-wide text-slate-300/70">
+                {{ game.slug }}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -167,6 +207,7 @@ const rankDraftByGame = ref<Record<string, string>>({});
 const loadingGame = ref(false);
 const loadingByGame = ref<Record<string, boolean>>({});
 const loadingIconByRank = ref<Record<string, boolean>>({});
+const loadingIconByGame = ref<Record<string, boolean>>({});
 const errorMessage = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 
@@ -213,7 +254,7 @@ const loadData = async () => {
     await Promise.all([
       (client as any)
         .from("games")
-        .select("id,name,slug")
+        .select("id,name,slug,icon_url")
         .order("name", { ascending: true }),
       (client as any)
         .from("game_ranks")
@@ -375,6 +416,66 @@ const withRankIconLoading = async (
   } finally {
     loadingIconByRank.value = { ...loadingIconByRank.value, [rankId]: false };
   }
+};
+
+const withGameIconLoading = async (
+  gameId: string,
+  callback: () => Promise<void>,
+) => {
+  loadingIconByGame.value = { ...loadingIconByGame.value, [gameId]: true };
+  try {
+    await callback();
+  } finally {
+    loadingIconByGame.value = { ...loadingIconByGame.value, [gameId]: false };
+  }
+};
+
+const onUploadGameIcon = async (event: Event, game: AdminGame) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0] ?? null;
+  target.value = "";
+
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    errorMessage.value = "Le fichier doit être une image.";
+    return;
+  }
+
+  successMessage.value = null;
+  errorMessage.value = null;
+
+  await withGameIconLoading(game.id, async () => {
+    const extension = getFileExtension(file);
+    const objectPath = `icons/${game.id}-${Math.random().toString(36).substring(2)}.${extension}`;
+
+    const { error: uploadError } = await (client as any).storage
+      .from("game-icons")
+      .upload(objectPath, file, { upsert: true, cacheControl: "3600" });
+
+    if (uploadError) {
+      errorMessage.value = "Impossible d'uploader l'icône du jeu.";
+      return;
+    }
+
+    const { data: publicData } = (client as any).storage
+      .from("game-icons")
+      .getPublicUrl(objectPath);
+    const iconUrl = publicData?.publicUrl ?? null;
+
+    const { error: updateError } = await (client as any)
+      .from("games")
+      .update({ icon_url: iconUrl })
+      .eq("id", game.id);
+
+    if (updateError) {
+      errorMessage.value =
+        "Icône uploadée, mais impossible de l'enregistrer en base.";
+      return;
+    }
+
+    successMessage.value = "Icône du jeu mise à jour.";
+    await loadData();
+  });
 };
 
 const onUploadRankIcon = async (

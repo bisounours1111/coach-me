@@ -1,3 +1,68 @@
+<script setup lang="ts">
+const {
+  isOpen,
+  openWithCoachId,
+  hasUnread,
+  setOpen,
+  clearOpenWithCoach,
+  markUnread,
+  activeConversationId,
+} = useMessagingPanel();
+const user = useSupabaseUser();
+const client = useSupabaseClient();
+
+const showMessagingButton = computed(() => !!user.value);
+
+let unsubscribeGlobalMessages: (() => void) | null = null;
+
+const setupGlobalMessageNotifications = () => {
+  if (unsubscribeGlobalMessages) {
+    unsubscribeGlobalMessages();
+    unsubscribeGlobalMessages = null;
+  }
+
+  const uid = (user.value as any)?.id ?? (user.value as any)?.sub ?? null;
+  if (!uid) return;
+
+  const ch = (client as any).channel(`messages:inbox:${uid}`);
+  ch.on(
+    "postgres_changes",
+    { event: "INSERT", schema: "public", table: "messages" },
+    async (payload: any) => {
+      const newMsg = payload?.new;
+      if (!newMsg?.conversation_id) return;
+      if (newMsg.sender_id === uid) return;
+
+      // Ignore si la conversation est déjà ouverte
+      if (isOpen.value && activeConversationId.value === newMsg.conversation_id)
+        return;
+
+      // Vérifier que l'utilisateur est bien participant à la conversation
+      const { data: conv } = await (client as any)
+        .from("conversations")
+        .select("id, student_id, coach_id")
+        .eq("id", newMsg.conversation_id)
+        .maybeSingle();
+
+      if (!conv) return;
+      if (conv.student_id !== uid && conv.coach_id !== uid) return;
+
+      markUnread();
+    },
+  ).subscribe();
+
+  unsubscribeGlobalMessages = () => {
+    (client as any).removeChannel(ch);
+  };
+};
+
+watch(user, () => setupGlobalMessageNotifications(), { immediate: true });
+
+onUnmounted(() => {
+  if (unsubscribeGlobalMessages) unsubscribeGlobalMessages();
+});
+</script>
+
 <template>
   <div class="relative min-h-screen bg-[#050812] text-slate-50">
     <!-- Background gradients -->
@@ -20,6 +85,33 @@
       <main class="flex-1">
         <slot />
       </main>
+
+      <!-- Bouton fixe messagerie (visible si connecté) -->
+      <button
+        v-if="showMessagingButton"
+        type="button"
+        class="fixed bottom-6 right-6 z-[90] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-teal-500 text-white shadow-lg shadow-teal-900/30 transition hover:scale-105 hover:bg-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-[#050812]"
+        aria-label="Ouvrir la messagerie"
+        @click="setOpen(!isOpen)"
+      >
+        <span class="relative">
+          <UIcon name="i-heroicons-chat-bubble-left-right" class="h-6 w-6" />
+          <span
+            v-if="hasUnread && !isOpen"
+            class="absolute right-0 top-0 h-2 w-2 translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-400/80 ring-2 ring-[#050812]"
+          />
+        </span>
+      </button>
+
+      <!-- Pop-up messagerie -->
+      <MessagingWidget
+        :open="isOpen"
+        :open-with-coach-id="openWithCoachId"
+        @close="
+          setOpen(false);
+          clearOpenWithCoach();
+        "
+      />
     </div>
   </div>
 </template>

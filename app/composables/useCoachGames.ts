@@ -198,7 +198,7 @@ export const useCoachGames = () => {
     if (toDelete.length) {
       const { error } = await (client as any)
         .from("profile_game_roles")
-        .delete()
+        .update({ is_coach: false })
         .eq("profile_id", userId)
         .in("game_id", toDelete);
       if (error) throw error;
@@ -228,31 +228,81 @@ export const useCoachGames = () => {
       const source = selectedRoles.find((item) => item.gameId === role.game_id);
       if (!source) continue;
 
-      const { error: clearError } = await (client as any)
+      const { data: existingOffers, error: existingOffersError } = await (
+        client as any
+      )
         .from("coachings")
-        .delete()
+        .select("id")
         .eq("profile_game_role_id", role.id);
-      if (clearError) throw clearError;
+      if (existingOffersError) throw existingOffersError;
 
-      if (!role.is_coach) continue;
+      const existingOfferIds = new Set(
+        ((existingOffers ?? []) as Array<{ id: string }>).map((o) =>
+          String(o.id),
+        ),
+      );
+
+      if (!role.is_coach) {
+        if (existingOfferIds.size) {
+          const { error: disableError } = await (client as any)
+            .from("coachings")
+            .update({ is_active: false })
+            .eq("profile_game_role_id", role.id);
+          if (disableError) throw disableError;
+        }
+        continue;
+      }
 
       const offers = source.offers.length ? source.offers : [defaultOffer()];
-      const { error: insertError } = await (client as any)
-        .from("coachings")
-        .insert(
-          offers.map((offer) => ({
-            profile_game_role_id: role.id,
-            description: offer.description.trim() || null,
-            video_urls: offer.videoUrls.length ? offer.videoUrls : null,
-            hourly_rate: offer.hourlyRate,
-            is_active: offer.isActive !== false,
-          })),
-        );
-      if (insertError) throw insertError;
+      const incomingOfferIds = new Set(
+        offers
+          .map((offer) => normalizeUuid((offer as any).id))
+          .filter((id): id is string => Boolean(id)),
+      );
+
+      // Désactiver les offres retirées
+      const toDisable = Array.from(existingOfferIds).filter(
+        (id) => !incomingOfferIds.has(id),
+      );
+      if (toDisable.length) {
+        const { error: disableError } = await (client as any)
+          .from("coachings")
+          .update({ is_active: false })
+          .in("id", toDisable);
+        if (disableError) throw disableError;
+      }
+
+      // Update des offres existantes (celles qui ont un id)
+      for (const offer of offers) {
+        const offerId = normalizeUuid((offer as any).id);
+        const payload = {
+          profile_game_role_id: role.id,
+          description: offer.description.trim() || null,
+          video_urls: offer.videoUrls.length ? offer.videoUrls : null,
+          hourly_rate: offer.hourlyRate,
+          is_active: offer.isActive !== false,
+        };
+
+        if (offerId) {
+          const { error: updateError } = await (client as any)
+            .from("coachings")
+            .update(payload)
+            .eq("id", offerId);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await (client as any)
+            .from("coachings")
+            .insert(payload);
+          if (insertError) throw insertError;
+        }
+      }
     }
   };
 
-  const uploadGameIcon = async (gameId: string, file: File): Promise<string> => {
+  const uploadGameIcon = async (
+    gameId: string,
+    file: File,
+  ): Promise<string> => {
     const fileExt = file.name.split(".").pop();
     const fileName = `${gameId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `icons/${fileName}`;

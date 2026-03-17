@@ -1,10 +1,34 @@
 <script setup lang="ts">
+import type { PublicCoachingOffer } from "~/composables/usePublicProfile";
+
 const props = defineProps<{
   offer: PublicCoachingOffer;
   gameName: string;
   isOwnProfile?: boolean;
   hasFutureAvailabilities?: boolean;
+  coachId?: string;
 }>();
+
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
+const loading = ref(false);
+const selectedSlotId = ref<string | null>(null);
+
+const handleBooking = async () => {
+  if (!user.value) {
+    return navigateTo("/auth/login");
+  }
+
+  // Redirection vers la page de réservation dédiée
+  return navigateTo({
+    path: `/coach/${props.coachId}/reserve`,
+    query: {
+      offerId: props.offer.id,
+      gameName: props.gameName,
+      rate: props.offer.hourlyRate,
+    },
+  });
+};
 
 // Split multi-line descriptions into feature bullets
 const features = computed(() => {
@@ -72,7 +96,7 @@ const descriptionText = computed(() =>
       />
 
       <!-- Content: Description or Features -->
-      <div class="flex-1 space-y-4">
+      <div class="flex-1 space-y-6">
         <p
           v-if="descriptionText"
           class="text-sm leading-relaxed text-slate-400 line-clamp-4"
@@ -102,13 +126,21 @@ const descriptionText = computed(() =>
       <div v-if="!isOwnProfile" class="mt-8">
         <button
           v-if="hasFutureAvailabilities"
-          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95"
+          :disabled="loading"
+          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+          @click="handleBooking"
         >
           <span class="relative z-10 flex items-center justify-center gap-2">
-            RÉSERVER MAINTENANT
+            {{ loading ? "CHARGEMENT..." : "RÉSERVER MAINTENANT" }}
             <UIcon
+              v-if="!loading"
               name="i-heroicons-arrow-right"
               class="h-4 w-4 transition-transform group-hover/btn:translate-x-1"
+            />
+            <UIcon
+              v-else
+              name="i-heroicons-arrow-path"
+              class="h-4 w-4 animate-spin"
             />
           </span>
           <!-- Hover Background Animation -->

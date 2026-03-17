@@ -57,26 +57,36 @@ serve(async (req: Request) => {
 
     if (error) throw new Error("Impossible de lire les transactions");
 
-    let credits = 0;
-    let debits = 0;
+    let earnedCents = 0; // total revenus (crédits succeeded)
+    let withdrawnCents = 0; // payouts succeeded
+    let pendingPayoutCents = 0; // payouts pending
     for (const t of data ?? []) {
       const status = String((t as any).status || "");
-      if (status !== "succeeded" && status !== "pending") continue;
-
       const type = String((t as any).type || "");
       const cents = toCents((t as any).amount);
-      if (type === "credit") credits += cents;
-      if (type === "payout") debits += cents;
+
+      if (type === "credit" && status === "succeeded") {
+        earnedCents += cents;
+      }
+
+      if (type === "payout" && status === "succeeded") {
+        withdrawnCents += cents;
+      }
+
+      if (type === "payout" && status === "pending") {
+        pendingPayoutCents += cents;
+      }
     }
 
-    const availableCents = Math.max(0, credits - debits);
+    const availableCents = Math.max(0, earnedCents - withdrawnCents - pendingPayoutCents);
 
     return new Response(
       JSON.stringify({
         walletId,
         currency: "EUR",
-        creditsCents: credits,
-        debitsCents: debits,
+        earnedCents,
+        withdrawnCents,
+        pendingPayoutCents,
         availableCents,
       }),
       {

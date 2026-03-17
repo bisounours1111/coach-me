@@ -19,8 +19,9 @@ const balanceError = ref<string | null>(null);
 
 type WalletBalance = {
   availableCents: number;
-  creditsCents: number;
-  debitsCents: number;
+  earnedCents: number;
+  withdrawnCents: number;
+  pendingPayoutCents: number;
   currency: string;
 };
 
@@ -274,13 +275,43 @@ onMounted(async () => {
           <p
             class="text-[10px] font-black uppercase tracking-wider text-slate-500"
           >
-            En attente
+            Retrait en attente
           </p>
           <p class="mt-2 text-4xl font-black text-slate-200">
-            {{ balanceLoading ? "…" : "—" }}
+            {{
+              balanceLoading
+                ? "…"
+                : eur(walletBalance?.pendingPayoutCents ?? 0)
+            }}
           </p>
           <p class="mt-2 text-xs text-slate-400">
-            La plateforme encaisse sur Stripe; la cagnotte est suivie en base.
+            Montant demandé en cash-out mais pas encore confirmé.
+          </p>
+        </div>
+      </section>
+
+      <section class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Revenus total
+          </p>
+          <p class="mt-2 text-3xl font-black text-white">
+            {{ balanceLoading ? "…" : eur(walletBalance?.earnedCents ?? 0) }}
+          </p>
+          <p class="mt-2 text-xs text-slate-400">
+            Total gagné (crédits validés).
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Déjà retiré
+          </p>
+          <p class="mt-2 text-3xl font-black text-white">
+            {{ balanceLoading ? "…" : eur(walletBalance?.withdrawnCents ?? 0) }}
+          </p>
+          <p class="mt-2 text-xs text-slate-400">
+            Total des retraits confirmés.
           </p>
         </div>
       </section>

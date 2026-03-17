@@ -5,10 +5,6 @@ type Game = {
   name: string;
 };
 
-definePageMeta({
-  middleware: ["auth"],
-});
-
 useHead({
   title: "Choisir un jeu · CoachMe",
 });

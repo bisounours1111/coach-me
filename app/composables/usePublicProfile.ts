@@ -27,6 +27,7 @@ export type PublicCoachingOffer = {
 export type PublicProfileView = PublicProfileBase & {
   games: PublicProfileGame[];
   offersByRoleId: Record<string, PublicCoachingOffer[]>;
+  hasFutureAvailabilities: boolean;
 };
 
 const toStringRecord = (value: unknown): Record<string, string> => {
@@ -50,8 +51,10 @@ export const usePublicProfile = () => {
   ): Promise<PublicProfileView | null> => {
     const { data: profileRow, error: profileError } = await (client as any)
       .from("profiles")
-      .select("id,full_name,avatar_url,bio,social_links")
+      .select("id,full_name,avatar_url,bio,social_links,coach_availabilities(id, start_at)")
       .eq("id", profileId)
+      .gt("coach_availabilities.start_at", new Date().toISOString())
+      .eq("coach_availabilities.status", "available")
       .maybeSingle();
 
     if (profileError) throw profileError;
@@ -131,6 +134,7 @@ export const usePublicProfile = () => {
       socialLinks: toStringRecord(profileRow.social_links),
       games,
       offersByRoleId,
+      hasFutureAvailabilities: (profileRow.coach_availabilities?.length ?? 0) > 0,
     };
   };
 

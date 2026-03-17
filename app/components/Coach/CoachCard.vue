@@ -6,7 +6,8 @@ const props = defineProps<{
   selectedGameSlug: string | null;
 }>();
 
-const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+const DEFAULT_AVATAR =
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 const primaryGame = computed(() => {
   if (!props.selectedGameSlug) return props.coach.games[0] ?? null;
@@ -42,9 +43,19 @@ const initials = computed(() => {
         />
       </div>
       <div class="min-w-0 flex-1">
-        <h2 class="truncate text-sm font-black text-white">
-          {{ coach.fullName || "Coach anonyme" }}
-        </h2>
+        <div class="flex items-center gap-2">
+          <h2 class="truncate text-sm font-black text-white">
+            {{ coach.fullName || "Coach anonyme" }}
+          </h2>
+          <div
+            v-if="!coach.hasFutureAvailabilities"
+            class="flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-500/90"
+            title="Ce coach n'a pas de disponibilités prévues pour le moment"
+          >
+            <UIcon name="i-heroicons-calendar-days" class="h-3 w-3" />
+            <span>Aucun créneau</span>
+          </div>
+        </div>
         <p class="text-xs text-slate-500">
           {{ primaryGame?.gameName || "Jeu non précisé" }}
           <span v-if="primaryGame?.playerRank">

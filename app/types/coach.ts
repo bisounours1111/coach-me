@@ -13,6 +13,7 @@ export interface CoachSearchResult {
   avatarUrl: string | null;
   bio: string | null;
   games: CoachGameInfo[];
+  hasFutureAvailabilities?: boolean;
   // Ces champs pourront être remplis plus tard via reviews
   averageRating?: number | null;
   reviewsCount?: number | null;

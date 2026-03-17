@@ -3,6 +3,7 @@ const props = defineProps<{
   offer: PublicCoachingOffer;
   gameName: string;
   isOwnProfile?: boolean;
+  hasFutureAvailabilities?: boolean;
 }>();
 
 // Split multi-line descriptions into feature bullets
@@ -100,6 +101,7 @@ const descriptionText = computed(() =>
       <!-- Footer: CTA -->
       <div v-if="!isOwnProfile" class="mt-8">
         <button
+          v-if="hasFutureAvailabilities"
           class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95"
         >
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -114,6 +116,16 @@ const descriptionText = computed(() =>
             class="absolute inset-0 -translate-x-full bg-gradient-to-r from-teal-400 to-teal-500 transition-transform duration-500 group-hover/btn:translate-x-0"
           />
         </button>
+        <div
+          v-else
+          class="relative w-full rounded-2xl bg-slate-800/50 py-4 text-center text-sm font-black tracking-widest text-slate-500 opacity-60 ring-1 ring-white/5"
+          title="Ce coach n'a pas de disponibilités prévues pour le moment"
+        >
+          <span class="flex items-center justify-center gap-2">
+            INDISPONIBLE
+            <UIcon name="i-heroicons-lock-closed" class="h-4 w-4" />
+          </span>
+        </div>
       </div>
     </div>
   </div>

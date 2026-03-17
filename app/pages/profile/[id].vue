@@ -135,7 +135,11 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                     v-if="game.gameIconUrl"
                     class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl shadow-teal-950/20"
                   >
-                    <img :src="game.gameIconUrl" :alt="game.gameName" class="h-full w-full object-cover" />
+                    <img
+                      :src="game.gameIconUrl"
+                      :alt="game.gameName"
+                      class="h-full w-full object-cover"
+                    />
                   </div>
                   <div
                     v-else
@@ -171,6 +175,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                     :offer="offer"
                     :game-name="game.gameName"
                     :is-own-profile="isOwnProfile"
+                    :has-future-availabilities="profile.hasFutureAvailabilities"
                   />
                 </div>
 

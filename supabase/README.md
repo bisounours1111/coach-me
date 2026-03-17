@@ -83,14 +83,14 @@ La migration **024_create_email_events_and_session_emails_trigger.sql** ajoute�
 
 À configurer dans **Project Settings → Edge Functions → Secrets** (ou équivalent) :
 
-| Variable | Obligatoire | Description |
-|----------|-------------|-------------|
-| `RESEND_API_KEY` | Oui | Clé API Resend |
-| `SUPABASE_SERVICE_ROLE_KEY` | Oui | Pour `generateLink` (reset password) et accès DB |
-| `EMAIL_WEBHOOK_SECRET` | Recommandé | Secret partagé pour sécuriser l’appel trigger → Edge (header `x-webhook-secret`) |
-| `EMAIL_FROM` | Optionnel | Expéditeur (ex. `Coach-me <no-reply@votredomaine.com>`) |
-| `CLIENT_URL` | Recommandé | URL de l’app (ex. `https://votredomaine.com`) pour les liens dans les emails et le redirect reset password |
-| `PUBLIC_APP_URL` | Optionnel | Ancien nom (fallback) si `CLIENT_URL` non défini |
+| Variable                    | Obligatoire | Description                                                                                                |
+| --------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`            | Oui         | Clé API Resend                                                                                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | Oui         | Pour `generateLink` (reset password) et accès DB                                                           |
+| `EMAIL_WEBHOOK_SECRET`      | Recommandé  | Secret partagé pour sécuriser l’appel trigger → Edge (header `x-webhook-secret`)                           |
+| `EMAIL_FROM`                | Optionnel   | Expéditeur (ex. `Coach-me <no-reply@votredomaine.com>`)                                                    |
+| `CLIENT_URL`                | Recommandé  | URL de l’app (ex. `https://votredomaine.com`) pour les liens dans les emails et le redirect reset password |
+| `PUBLIC_APP_URL`            | Optionnel   | Ancien nom (fallback) si `CLIENT_URL` non défini                                                           |
 
 ### Config base de données après migration
 

@@ -36,6 +36,15 @@ function toCents(amountMajor: unknown): number {
   return Math.round(n * 100);
 }
 
+function sumBalanceAmount(
+  balanceItems: Array<{ amount: number; currency: string }>,
+  currency: string,
+): number {
+  return (balanceItems ?? [])
+    .filter((x) => String(x.currency).toLowerCase() === currency.toLowerCase())
+    .reduce((acc, x) => acc + (typeof x.amount === "number" ? x.amount : 0), 0);
+}
+
 async function getWalletAvailableCents(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
   profileId: string,
@@ -102,6 +111,26 @@ serve(async (req: Request) => {
     }
 
     const walletId = await getOrCreateWalletId(supabaseAdmin, userId);
+
+    // Vérifier que la plateforme a bien les fonds DISPONIBLES sur Stripe.
+    // En test, Stripe peut simuler un solde "available" à 0 → utiliser la carte 4000 0000 0000 0077
+    // pour créditer directement la balance available (cf docs Stripe testing).
+    const platformBalance = await stripe.balance.retrieve();
+    const platformAvailableEur = sumBalanceAmount(
+      platformBalance.available || [],
+      "eur",
+    );
+    const platformPendingEur = sumBalanceAmount(
+      platformBalance.pending || [],
+      "eur",
+    );
+    if (requested > platformAvailableEur) {
+      throw new Error(
+        `Fonds Stripe plateforme insuffisants: available=${(platformAvailableEur / 100).toFixed(2)}€ ` +
+          `(pending=${(platformPendingEur / 100).toFixed(2)}€), demandé=${(requested / 100).toFixed(2)}€. ` +
+          `En mode test, fais un paiement avec la carte 4000 0000 0000 0077 pour créditer la balance "available".`,
+      );
+    }
 
     // On transfère depuis la plateforme vers le compte Connect (cash-out).
     // Le compte Connect pourra ensuite payer vers la banque selon sa config.

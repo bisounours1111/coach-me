@@ -90,7 +90,15 @@ watch(
         </div>
 
         <!-- Desktop Navigation -->
-        <div class="hidden md:flex md:items-center md:gap-4">
+        <div class="hidden md:flex md:items-center md:gap-6">
+          <!-- Nav links -->
+          <NuxtLink
+            to="/"
+            class="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+          >
+            Jeux
+          </NuxtLink>
+
           <template v-if="user">
             <!-- User Dropdown (Desktop) -->
             <div class="relative" ref="dropdownRef">
@@ -123,7 +131,7 @@ watch(
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                     @click="isUserDropdownOpen = false"
                   >
-                    <div class="h-4 w-4 i-lucide-user" />
+                    <UIcon name="i-lucide-user" class="h-4 w-4" />
                     Voir mon profil
                   </NuxtLink>
                   <NuxtLink
@@ -131,7 +139,7 @@ watch(
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                     @click="isUserDropdownOpen = false"
                   >
-                    <div class="h-4 w-4 i-lucide-settings" />
+                    <UIcon name="i-lucide-settings" class="h-4 w-4" />
                     Éditer le profil
                   </NuxtLink>
                   <template v-if="userProfile?.role === 'maintainer'">
@@ -141,7 +149,7 @@ watch(
                       class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                       @click="isUserDropdownOpen = false"
                     >
-                      <div class="h-4 w-4 i-lucide-layout-dashboard" />
+                      <UIcon name="i-lucide-layout-dashboard" class="h-4 w-4" />
                       Dashboard Admin
                     </NuxtLink>
                   </template>
@@ -150,7 +158,7 @@ watch(
                     @click="logout"
                     class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
                   >
-                    <div class="h-4 w-4 i-lucide-log-out" />
+                    <UIcon name="i-lucide-log-out" class="h-4 w-4" />
                     Déconnexion
                   </button>
                 </div>
@@ -180,8 +188,8 @@ watch(
             class="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
           >
             <span class="sr-only">Ouvrir le menu</span>
-            <div v-if="!isMobileMenuOpen" class="h-6 w-6 i-lucide-menu" />
-            <div v-else class="h-6 w-6 i-lucide-x" />
+            <UIcon v-if="!isMobileMenuOpen" name="i-lucide-menu" class="h-6 w-6" />
+            <UIcon v-else name="i-lucide-x" class="h-6 w-6" />
           </button>
         </div>
       </div>
@@ -200,6 +208,20 @@ watch(
         v-if="isMobileMenuOpen"
         class="md:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 space-y-4"
       >
+        <!-- Liens de navigation généraux -->
+        <div class="space-y-1">
+          <NuxtLink
+            to="/"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+            @click="isMobileMenuOpen = false"
+          >
+            <UIcon name="i-lucide-gamepad-2" class="h-5 w-5" />
+            Jeux
+          </NuxtLink>
+        </div>
+
+        <div class="border-t border-slate-800" />
+
         <template v-if="user">
           <div class="flex items-center gap-3 px-2 mb-4">
             <div
@@ -225,7 +247,7 @@ watch(
               class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
               @click="isMobileMenuOpen = false"
             >
-              <div class="h-5 w-5 i-lucide-user" />
+              <UIcon name="i-lucide-user" class="h-5 w-5" />
               Voir mon profil
             </NuxtLink>
             <NuxtLink
@@ -233,7 +255,7 @@ watch(
               class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
               @click="isMobileMenuOpen = false"
             >
-              <div class="h-5 w-5 i-lucide-settings" />
+              <UIcon name="i-lucide-settings" class="h-5 w-5" />
               Éditer le profil
             </NuxtLink>
             <template v-if="userProfile?.role === 'maintainer'">
@@ -242,7 +264,7 @@ watch(
                 class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-indigo-400 hover:bg-indigo-500/10"
                 @click="isMobileMenuOpen = false"
               >
-                <div class="h-5 w-5 i-lucide-layout-dashboard" />
+                <UIcon name="i-lucide-layout-dashboard" class="h-5 w-5" />
                 Dashboard Admin
               </NuxtLink>
             </template>
@@ -253,7 +275,7 @@ watch(
               @click="logout"
               class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-rose-400 hover:bg-rose-500/10"
             >
-              <div class="h-5 w-5 i-lucide-log-out" />
+              <UIcon name="i-lucide-log-out" class="h-5 w-5" />
               Déconnexion
             </button>
           </div>

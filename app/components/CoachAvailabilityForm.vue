@@ -27,7 +27,7 @@ const availabilities = ref<Availability[]>([]);
 const bookedSessions = ref<Session[]>([]);
 const loading = ref(true);
 const creating = ref(false);
-const removingIds = ref<string[]>([]);
+const deletingIds = ref<Set<string>>(new Set());
 const errorMessage = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 
@@ -43,13 +43,6 @@ const BOOKED_SESSION_STATUSES: SessionStatus[] = [
 const clearMessages = () => {
   errorMessage.value = null;
   successMessage.value = null;
-};
-
-const setRemoving = (id: string, removing: boolean) => {
-  const next = new Set(removingIds.value);
-  if (removing) next.add(id);
-  else next.delete(id);
-  removingIds.value = Array.from(next);
 };
 
 const buildAvailabilityLabel = (availability: Availability) => {
@@ -79,7 +72,7 @@ const toAvailabilityEvent = (availability: Availability): EventInput => ({
     kind: "availability",
     availabilityId: availability.id,
     status: availability.status,
-    deleting: removingIds.value.includes(availability.id),
+    deleting: deletingIds.value.has(availability.id),
   },
 });
 
@@ -120,6 +113,19 @@ const hasOverlap = (startAt: string, endAt: string) => {
     return slotStart < eventEnd && slotEnd > eventStart;
   });
 };
+
+const fullCalendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
+
+const refreshCalendar = () => {
+  if (fullCalendarRef.value) {
+    const api = fullCalendarRef.value.getApi();
+    api.updateSize();
+  }
+};
+
+defineExpose({
+  refreshCalendar,
+});
 
 const loadCalendarData = async () => {
   loading.value = true;
@@ -215,18 +221,18 @@ const handleCreateSelection = async (selection: DateSelectArg) => {
 };
 
 const handleDeleteAvailability = async (availabilityId: string) => {
-  if (removingIds.value.includes(availabilityId)) return;
+  if (deletingIds.value.has(availabilityId)) return;
 
   clearMessages();
 
   const previousRows = [...availabilities.value];
-  availabilities.value = availabilities.value.filter(
-    (availability) => availability.id !== availabilityId,
-  );
-  setRemoving(availabilityId, true);
+  deletingIds.value = new Set([...deletingIds.value, availabilityId]);
 
   try {
     await deleteAvailability(availabilityId);
+    availabilities.value = availabilities.value.filter(
+      (availability) => availability.id !== availabilityId,
+    );
     successMessage.value = "Le créneau a été supprimé.";
   } catch (error: any) {
     availabilities.value = previousRows;
@@ -235,7 +241,9 @@ const handleDeleteAvailability = async (availabilityId: string) => {
       String(error?.message ?? "").trim() ||
       "Impossible de supprimer ce créneau pour le moment.";
   } finally {
-    setRemoving(availabilityId, false);
+    const next = new Set(deletingIds.value);
+    next.delete(availabilityId);
+    deletingIds.value = next;
   }
 };
 
@@ -358,7 +366,7 @@ onMounted(loadCalendarData);
       </div>
 
       <ClientOnly>
-        <FullCalendar :options="calendarOptions">
+        <FullCalendar ref="fullCalendarRef" :options="calendarOptions">
           <template #eventContent="arg">
             <div class="calendar-event flex h-full w-full items-start justify-between gap-2">
               <div class="min-w-0">

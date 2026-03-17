@@ -1,6 +1,16 @@
 <script setup lang="ts">
 const route = useRoute();
 const user = useSupabaseUser();
+
+const backLink = computed(() => {
+  const game = route.query.game as string | undefined;
+  return game ? `/games/${game}` : "/games";
+});
+
+const backLabel = computed(() => {
+  const game = route.query.game as string | undefined;
+  return game ? "Retour aux coachs" : "Accueil";
+});
 const client = useSupabaseClient();
 const { getPublicProfile } = usePublicProfile();
 
@@ -55,7 +65,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
 <template>
   <div
-    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30"
+    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30 overflow-x-hidden flex flex-col"
   >
     <!-- Loading State -->
     <div
@@ -101,7 +111,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
           </p>
         </div>
         <NuxtLink
-          to="/"
+          to="/games"
           class="inline-flex items-center gap-2 rounded-2xl bg-white/5 px-8 py-4 text-sm font-bold text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
         >
           <UIcon name="i-heroicons-arrow-left" class="h-4 w-4" />
@@ -110,15 +120,28 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
       </div>
     </div>
 
-    <!-- Main Profile Content -->
     <template v-else>
-      <ProfileHeader
-        :profile="profile"
-        :min-rate="minRate"
-        :is-own-profile="isOwnProfile"
-      />
+      <div class="relative">
+        <div class="absolute top-6 left-0 right-0 z-20">
+          <div class="mx-auto max-w-6xl px-4">
+            <NuxtLink
+              :to="backLink"
+              class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
+            >
+              <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />
+              {{ backLabel }}
+            </NuxtLink>
+          </div>
+        </div>
 
-      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
+        <ProfileHeader
+          :profile="profile"
+          :min-rate="minRate"
+          :is-own-profile="isOwnProfile"
+        />
+      </div>
+
+      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16 flex-1">
         <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
           <!-- Left Column: Coaching & Content -->
           <div class="space-y-16">

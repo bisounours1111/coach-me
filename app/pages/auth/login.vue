@@ -47,7 +47,7 @@
           <div class="mt-6">
             <NuxtLink
               to="/auth/register"
-              class="flex w-full justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 hover:border-slate-600"
+              class="flex w-full cursor-pointer justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 hover:border-slate-600"
             >
               Créer un compte
             </NuxtLink>
@@ -90,39 +90,14 @@ const onSubmit = async () => {
     const user = userFromState?.id
       ? userFromState
       : (await client.auth.getUser()).data.user;
-    const role = user?.id ? await getUserRole(user.id) : null;
-    console.info("[login] profile loaded", {
-      userId: user?.id ?? null,
-      email: user?.email ?? null,
-      role,
-    });
 
     if (!user?.id) {
       throw new Error("Session introuvable juste après connexion.");
     }
 
-    const { data: gameRoles } = await (client as any)
-      .from("profile_game_roles")
-      .select("is_coach")
-      .eq("profile_id", user.id);
-
-    const hasAnyGame = Boolean(gameRoles?.length);
-    const isCoach = (gameRoles ?? []).some(
-      (gameRole: { is_coach: boolean }) => gameRole.is_coach,
-    );
-    console.info("[login] profile_game_roles loaded", {
-      userId: user.id,
-      gameRolesCount: gameRoles?.length ?? 0,
-      hasAnyGame,
-      isCoach,
-    });
-
-    if (isCoach || hasAnyGame || role === "maintainer") {
-      await router.push("/");
-      return;
-    }
-
-    await router.push("/preferences");
+    // Le middleware onboarding s'occupera de rediriger si nécessaire
+    // On redirige vers /games par défaut après le login
+    await router.push("/games");
     return;
   } catch (err: any) {
     errorMessage.value =

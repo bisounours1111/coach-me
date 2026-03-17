@@ -10,7 +10,7 @@ export default defineNuxtRouteMiddleware(async () => {
   }
 
   if (!userId) {
-    return navigateTo("/");
+    return navigateTo("/games");
   }
 
   const { data: gameRoles } = await (client as any)

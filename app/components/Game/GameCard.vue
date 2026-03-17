@@ -68,11 +68,6 @@ const cardGradient = computed(() => {
       >
         {{ game.name }}
       </h2>
-      <p
-        class="text-[0.65rem] font-bold uppercase tracking-widest text-slate-600"
-      >
-        {{ game.slug }}
-      </p>
     </div>
   </NuxtLink>
 </template>

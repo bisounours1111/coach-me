@@ -162,10 +162,24 @@ export const useCoachProfile = () => {
     };
   };
 
+  const getIsMaintainer = async (userId: string | undefined): Promise<boolean> => {
+    if (!userId || userId === "undefined") return false;
+
+    const { data, error } = await (client as any)
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (error) return false;
+    return data?.role === "maintainer";
+  };
+
   return {
     getCoachProfile,
     getCoachPublicData,
     updateCoachProfile,
     uploadAvatar,
+    getIsMaintainer,
   };
 };

@@ -20,11 +20,19 @@ export const useCoaches = () => {
 
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const results = ref<CoachSearchResult[]>([]);
+  const allResults = ref<CoachSearchResult[]>([]);
 
   const filters = ref<CoachFilters>({
     gameSlug: null,
     searchText: "",
+  });
+
+  const results = computed(() => {
+    const search = filters.value.searchText.trim().toLowerCase();
+    if (!search) return allResults.value;
+    return allResults.value.filter((coach) =>
+      coach.fullName?.toLowerCase().includes(search) ?? false
+    );
   });
 
   const setGameFilter = (slug: string | null) => {
@@ -40,7 +48,7 @@ export const useCoaches = () => {
     error.value = null;
 
     if (!filters.value.gameSlug) {
-      results.value = [];
+      allResults.value = [];
       return;
     }
 
@@ -55,7 +63,7 @@ export const useCoaches = () => {
     if (gameError || !gameRow?.id) {
       loading.value = false;
       error.value = "Jeu introuvable.";
-      results.value = [];
+      allResults.value = [];
       return;
     }
 
@@ -76,7 +84,7 @@ export const useCoaches = () => {
     if (queryError) {
       console.error(queryError);
       error.value = "Impossible de charger les coachs pour le moment.";
-      results.value = [];
+      allResults.value = [];
       return;
     }
 
@@ -109,10 +117,13 @@ export const useCoaches = () => {
       const profileId = profile.id;
       const existing = byProfile.get(profileId);
 
-      const activeCoaching =
-        row.coachings?.find((c) => c.is_active && c.hourly_rate != null) ??
-        row.coachings?.[0] ??
-        null;
+      const activeCoachings =
+        row.coachings?.filter((c) => c.is_active && c.hourly_rate != null) ?? [];
+
+      const minHourlyRate =
+        activeCoachings.length > 0
+          ? Math.min(...activeCoachings.map((c) => c.hourly_rate as number))
+          : null;
 
       const gameInfo: CoachGameInfo = {
         gameId: game.id,
@@ -120,7 +131,7 @@ export const useCoaches = () => {
         gameName: game.name,
         isCoach: true,
         playerRank: null,
-        hourlyRate: activeCoaching?.hourly_rate ?? null,
+        hourlyRate: minHourlyRate,
       };
 
       if (!existing) {
@@ -138,18 +149,7 @@ export const useCoaches = () => {
       }
     }
 
-    let list = Array.from(byProfile.values());
-
-    const search = filters.value.searchText.trim().toLowerCase();
-    if (search) {
-      list = list.filter((coach) => {
-        const inName = coach.fullName?.toLowerCase().includes(search) ?? false;
-        const inBio = coach.bio?.toLowerCase().includes(search) ?? false;
-        return inName || inBio;
-      });
-    }
-
-    results.value = list;
+    allResults.value = Array.from(byProfile.values());
   };
 
   return {

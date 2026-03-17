@@ -11,7 +11,11 @@ const { getUserRole } = useProfile();
 
 const isMobileMenuOpen = ref(false);
 const isUserDropdownOpen = ref(false);
-const userProfile = ref<{ avatarUrl?: string; fullName?: string; role?: string } | null>(null);
+const userProfile = ref<{
+  avatarUrl?: string;
+  fullName?: string;
+  role?: string;
+} | null>(null);
 
 const dropdownRef = ref<HTMLElement | null>(null);
 
@@ -21,7 +25,8 @@ if (import.meta.client) {
   });
 }
 
-const DEFAULT_AVATAR = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+const DEFAULT_AVATAR =
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 const logout = async () => {
   await client.auth.signOut();
@@ -36,12 +41,12 @@ const fetchProfile = async () => {
     try {
       const [profile, role] = await Promise.all([
         getCoachProfile(userId),
-        getUserRole(userId)
+        getUserRole(userId),
       ]);
       userProfile.value = {
         avatarUrl: profile.avatarUrl,
         fullName: profile.fullName,
-        role: role || 'user'
+        role: role || "user",
       };
     } catch (e) {
       console.error("Error fetching profile for navbar:", e);
@@ -91,14 +96,6 @@ watch(
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex md:items-center md:gap-6">
-          <!-- Nav links -->
-          <NuxtLink
-            to="/"
-            class="text-sm font-medium text-slate-300 hover:text-white transition-colors"
-          >
-            Jeux
-          </NuxtLink>
-
           <template v-if="user">
             <!-- User Dropdown (Desktop) -->
             <div class="relative" ref="dropdownRef">
@@ -188,7 +185,11 @@ watch(
             class="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
           >
             <span class="sr-only">Ouvrir le menu</span>
-            <UIcon v-if="!isMobileMenuOpen" name="i-lucide-menu" class="h-6 w-6" />
+            <UIcon
+              v-if="!isMobileMenuOpen"
+              name="i-lucide-menu"
+              class="h-6 w-6"
+            />
             <UIcon v-else name="i-lucide-x" class="h-6 w-6" />
           </button>
         </div>
@@ -208,20 +209,6 @@ watch(
         v-if="isMobileMenuOpen"
         class="md:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 space-y-4"
       >
-        <!-- Liens de navigation généraux -->
-        <div class="space-y-1">
-          <NuxtLink
-            to="/"
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            @click="isMobileMenuOpen = false"
-          >
-            <UIcon name="i-lucide-gamepad-2" class="h-5 w-5" />
-            Jeux
-          </NuxtLink>
-        </div>
-
-        <div class="border-t border-slate-800" />
-
         <template v-if="user">
           <div class="flex items-center gap-3 px-2 mb-4">
             <div
@@ -240,6 +227,8 @@ watch(
               <p class="text-xs text-slate-500 truncate">{{ user.email }}</p>
             </div>
           </div>
+
+          <div class="border-t border-slate-800" />
 
           <div class="space-y-1">
             <NuxtLink

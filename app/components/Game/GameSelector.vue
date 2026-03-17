@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Game } from "../types/profile";
+import type { Game } from "~/types/profile";
 
 const props = withDefaults(
   defineProps<{

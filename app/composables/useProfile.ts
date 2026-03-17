@@ -7,14 +7,16 @@ export const useProfile = () => {
   const getUserProfile = async (userId?: string): Promise<Profile | null> => {
     // Récupération de l'ID (paramètre > session Nuxt > session Supabase directe)
     let id = userId || user.value?.id;
-    
+
     if (!id) {
       const { data } = await client.auth.getUser();
       id = data.user?.id;
     }
-    
+
     if (!id) {
-      console.warn("[useProfile] Impossible de récupérer un ID utilisateur (session manquante)");
+      console.warn(
+        "[useProfile] Impossible de récupérer un ID utilisateur (session manquante)",
+      );
       return null;
     }
 
@@ -25,7 +27,10 @@ export const useProfile = () => {
       .maybeSingle();
 
     if (error) {
-      console.error("[useProfile] Erreur lors du chargement du profil:", { id, error });
+      console.error("[useProfile] Erreur lors du chargement du profil:", {
+        id,
+        error,
+      });
       return null;
     }
 

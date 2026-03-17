@@ -85,9 +85,7 @@
                 Supprimer
               </button>
             </div>
-            <p class="text-[10px] text-slate-500">
-              JPG, PNG ou WebP. Max 2Mo.
-            </p>
+            <p class="text-[10px] text-slate-500">JPG, PNG ou WebP. Max 2Mo.</p>
           </div>
         </div>
         <p v-if="errors?.avatarUrl" class="text-[0.7rem] text-rose-200/90">

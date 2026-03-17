@@ -59,7 +59,18 @@ export const useAuth = () => {
     }
 
     if (data.user && data.session) {
-      await router.push("/dashboard");
+      // On vérifie si l'utilisateur a déjà configuré ses préférences
+      const { data: gameRoles } = await (client as any)
+        .from("profile_game_roles")
+        .select("id")
+        .eq("profile_id", data.user.id)
+        .limit(1);
+
+      if (!gameRoles || gameRoles.length === 0) {
+        await router.push("/preferences");
+      } else {
+        await router.push("/profile/edit");
+      }
     }
 
     return data.user ?? null;

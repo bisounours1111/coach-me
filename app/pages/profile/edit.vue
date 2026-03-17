@@ -3,7 +3,7 @@
     <div class="mx-auto w-full max-w-3xl">
       <div class="mb-6">
         <h1 class="text-2xl font-semibold text-slate-50">
-          Éditer mon profil coach
+          {{ isCoach ? "Éditer mon profil coach" : "Éditer mon profil" }}
         </h1>
         <p class="mt-2 text-sm text-slate-300/85">
           Ces informations seront visibles sur ton portfolio.
@@ -38,13 +38,14 @@
           />
 
           <CoachCoachingOffersForm
+            v-if="isCoach"
             v-model="gameRoles"
             :errors="fieldErrors"
             :user-id="activeUserId ?? undefined"
             @validate="onValidate"
           />
 
-          <div class="pt-8 border-t border-white/10">
+          <div v-if="isCoach" class="pt-8 border-t border-white/10">
             <CoachAvailabilityForm
               v-if="activeUserId"
               :user-id="activeUserId"
@@ -100,7 +101,7 @@ import {
 } from "../../composables/useCoachProfile";
 
 definePageMeta({
-  middleware: ["coach-only"],
+  middleware: ["auth", "onboarding"],
 });
 
 useHead({
@@ -123,6 +124,9 @@ const saving = ref(false);
 const loadError = ref<string | null>(null);
 const saveError = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
+const isCoach = computed(() =>
+  gameRoles.value.some((role) => role.selected && role.isCoach),
+);
 const fieldErrors = ref<ProfileFieldErrors>({});
 const availableGames = ref<Array<{ id: string; slug: string; name: string }>>(
   [],

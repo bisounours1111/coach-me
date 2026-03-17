@@ -102,7 +102,7 @@ const onSubmit = async () => {
     await signUp(email.value, password.value, "student", username.value.trim());
     successMessage.value =
       "Compte créé. Vérifie tes emails si une confirmation est requise.";
-    await router.push("/preferences");
+    // Le composable useAuth gère déjà la redirection vers /preferences si nécessaire
   } catch {
     // l'erreur est déjà gérée dans le composable
   }

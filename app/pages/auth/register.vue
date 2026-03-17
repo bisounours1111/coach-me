@@ -14,6 +14,12 @@
       >
         <AuthRegisterForm />
 
+        <p class="mt-4 text-center text-xs text-slate-500">
+          En créant un compte, vous acceptez notre
+          <NuxtLink to="/legal/privacy" class="text-teal-400 hover:underline">politique de confidentialité</NuxtLink>.
+          Vos données (profil, messages, réservations) sont conservées conformément au RGPD.
+        </p>
+
         <div class="mt-6">
           <div class="relative">
             <div class="absolute inset-0 flex items-center">

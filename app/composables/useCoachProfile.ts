@@ -120,8 +120,51 @@ export const useCoachProfile = () => {
     return publicUrlData.publicUrl;
   };
 
+  const getCoachPublicData = async (userId: string) => {
+    const { data, error } = await (client as any)
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        avatar_url,
+        bio,
+        social_links,
+        is_coach,
+        profile_game_roles (
+          id,
+          game_id,
+          role,
+          games (
+            id,
+            name,
+            image_url
+          ),
+          game_ranks (
+            id,
+            name,
+            icon_url
+          )
+        )
+      `)
+      .eq("id", userId)
+      .single();
+
+    if (error) throw error;
+
+    // Récupérer les stats séparément via les fonctions RPC
+    const { data: avgRating } = await (client as any).rpc('get_coach_average_rating', { coach_uuid: userId });
+    const { data: reviewCount } = await (client as any).rpc('get_coach_review_count', { coach_uuid: userId });
+
+    return {
+      ...data,
+      average_rating: avgRating || 0,
+      review_count: reviewCount || 0
+    };
+  };
+
   return {
     getCoachProfile,
+    getCoachPublicData,
     updateCoachProfile,
     uploadAvatar,
   };

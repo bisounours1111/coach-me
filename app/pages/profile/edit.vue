@@ -3,10 +3,10 @@
     <div class="mx-auto w-full max-w-5xl">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-slate-50">
-          Paramètres du compte
+          {{ onboardingMode ? 'Bienvenue ! Configure ton compte' : 'Paramètres du compte' }}
         </h1>
         <p class="mt-2 text-sm text-slate-400">
-          Gère ton profil, tes jeux et tes offres de coaching.
+          {{ onboardingMode ? 'Commence par ajouter tes jeux pour personnaliser ton profil.' : 'Gère ton profil, tes jeux et tes offres de coaching.' }}
         </p>
       </div>
 
@@ -405,10 +405,27 @@ const resolveUserId = async (): Promise<string | null> => {
   return authUser?.id || (authUser as any)?.sub || null;
 };
 
+// Onboarding logic
+const route = useRoute();
+const onboardingMode = ref(false);
+
+const checkOnboarding = () => {
+  const hasGames = gameRoles.value.some(role => role.selected);
+  if (!hasGames) {
+    onboardingMode.value = true;
+    activeTab.value = 'games';
+  } else {
+    onboardingMode.value = false;
+  }
+};
+
 onMounted(async () => {
   const resolvedId = await resolveUserId();
   activeUserId.value = resolvedId;
-  if (resolvedId) await load(resolvedId);
+  if (resolvedId) {
+    await load(resolvedId);
+    checkOnboarding();
+  }
 });
 
 const onValidate = () => {
@@ -446,6 +463,7 @@ const onSave = async () => {
     successMessage.value = "Modifications enregistrées.";
     setTimeout(() => successMessage.value = null, 3000);
     await load(id);
+    checkOnboarding();
   } catch (error: any) {
     saveError.value = error?.message || "Erreur lors de l'enregistrement.";
   } finally {

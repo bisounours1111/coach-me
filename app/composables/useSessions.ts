@@ -53,13 +53,49 @@ export const useSessions = () => {
     return authUserId;
   };
 
+  const getCoachCoachingIds = async (coachProfileId: string) => {
+    const { data: roles, error: rolesError } = await client
+      .from("profile_game_roles")
+      .select("id")
+      .eq("profile_id", coachProfileId)
+      .eq("is_coach", true);
+
+    if (rolesError) throw rolesError;
+
+    const roleIds = (roles ?? []).map((r: any) => r.id).filter(Boolean);
+    if (roleIds.length === 0) return [];
+
+    const { data: coachings, error: coachingsError } = await client
+      .from("coachings")
+      .select("id")
+      .in("profile_game_role_id", roleIds);
+
+    if (coachingsError) throw coachingsError;
+    return (coachings ?? []).map((c: any) => c.id).filter(Boolean);
+  };
+
   const getSessions = async (role: "coach" | "student") => {
     const authenticatedUserId = await getAuthenticatedUserId();
+
+    if (role === "student") {
+      const { data, error } = await client
+        .from("sessions")
+        .select("*")
+        .eq("student_id", authenticatedUserId)
+        .order("start_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
+
+    // coach_id référence public.coachings(id)
+    const coachingIds = await getCoachCoachingIds(authenticatedUserId);
+    if (coachingIds.length === 0) return [];
 
     const { data, error } = await client
       .from("sessions")
       .select("*")
-      .eq(role === "coach" ? "coach_id" : "student_id", authenticatedUserId)
+      .in("coach_id", coachingIds)
       .order("start_at", { ascending: false });
 
     if (error) throw error;

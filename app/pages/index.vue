@@ -39,9 +39,9 @@ const benefits = [
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col justify-center px-4">
+  <div class="flex min-h-screen flex-col px-4">
     <!-- ── HERO ──────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden">
+    <section class="relative py-24 sm:py-32">
       <!-- Glow de fond -->
       <div
         class="pointer-events-none absolute inset-0 flex items-center justify-center"

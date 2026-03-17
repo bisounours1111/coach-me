@@ -1,5 +1,5 @@
 <template>
-  <div class="relative min-h-screen overflow-hidden bg-[#050812] text-slate-50">
+  <div class="relative min-h-screen bg-[#050812] text-slate-50">
     <!-- Background gradients -->
     <div class="pointer-events-none absolute inset-0 opacity-90">
       <div

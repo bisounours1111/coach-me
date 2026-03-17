@@ -69,7 +69,7 @@ onMounted(async () => {
     <!-- Header -->
     <header class="mb-10 space-y-3">
       <NuxtLink
-        to="/"
+        to="/games"
         class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-teal-400"
       >
         <UIcon name="i-heroicons-arrow-left" class="h-3.5 w-3.5" />

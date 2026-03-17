@@ -4,7 +4,7 @@ const user = useSupabaseUser();
 
 const backLink = computed(() => {
   const game = route.query.game as string | undefined;
-  return game ? `/games/${game}` : "/";
+  return game ? `/games/${game}` : "/games";
 });
 
 const backLabel = computed(() => {
@@ -111,7 +111,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
           </p>
         </div>
         <NuxtLink
-          to="/"
+          to="/games"
           class="inline-flex items-center gap-2 rounded-2xl bg-white/5 px-8 py-4 text-sm font-bold text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
         >
           <UIcon name="i-heroicons-arrow-left" class="h-4 w-4" />

@@ -1,3 +1,10 @@
+<script setup lang="ts">
+const { isOpen, openWithCoachId, setOpen, clearOpenWithCoach } = useMessagingPanel();
+const user = useSupabaseUser();
+
+const showMessagingButton = computed(() => !!user.value);
+</script>
+
 <template>
   <div class="relative min-h-screen overflow-hidden bg-[#050812] text-slate-50">
     <!-- Background gradients -->
@@ -20,6 +27,24 @@
       <main class="flex-1">
         <slot />
       </main>
+
+      <!-- Bouton fixe messagerie (visible si connecté) -->
+      <button
+        v-if="showMessagingButton"
+        type="button"
+        class="fixed bottom-6 right-6 z-[90] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-teal-500 text-white shadow-lg shadow-teal-900/30 transition hover:scale-105 hover:bg-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-[#050812]"
+        aria-label="Ouvrir la messagerie"
+        @click="setOpen(!isOpen)"
+      >
+        <UIcon name="i-heroicons-chat-bubble-left-right" class="h-6 w-6" />
+      </button>
+
+      <!-- Pop-up messagerie -->
+      <MessagingWidget
+        :open="isOpen"
+        :open-with-coach-id="openWithCoachId"
+        @close="setOpen(false); clearOpenWithCoach()"
+      />
     </div>
   </div>
 </template>

@@ -30,11 +30,9 @@ export const useCoaches = () => {
   const results = computed(() => {
     const search = filters.value.searchText.trim().toLowerCase();
     if (!search) return allResults.value;
-    return allResults.value.filter((coach) => {
-      const inName = coach.fullName?.toLowerCase().includes(search) ?? false;
-      const inBio = coach.bio?.toLowerCase().includes(search) ?? false;
-      return inName || inBio;
-    });
+    return allResults.value.filter((coach) =>
+      coach.fullName?.toLowerCase().includes(search) ?? false
+    );
   });
 
   const setGameFilter = (slug: string | null) => {

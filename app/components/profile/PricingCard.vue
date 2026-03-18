@@ -127,7 +127,7 @@ const descriptionText = computed(() =>
         <button
           v-if="hasFutureAvailabilities"
           :disabled="loading"
-          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+          class="group/btn relative w-full overflow-hidden rounded-2xl bg-white/5 px-6 py-4 text-sm font-black tracking-widest text-white transition-all duration-300 hover:bg-teal-500 hover:text-slate-950 active:scale-95 disabled:cursor-wait disabled:opacity-50"
           @click="handleBooking"
         >
           <span class="relative z-10 flex items-center justify-center gap-2">

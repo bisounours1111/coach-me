@@ -114,6 +114,19 @@ const hasOverlap = (startAt: string, endAt: string) => {
   });
 };
 
+const fullCalendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
+
+const refreshCalendar = () => {
+  if (fullCalendarRef.value) {
+    const api = fullCalendarRef.value.getApi();
+    api.updateSize();
+  }
+};
+
+defineExpose({
+  refreshCalendar,
+});
+
 const loadCalendarData = async () => {
   loading.value = true;
   clearMessages();
@@ -353,7 +366,7 @@ onMounted(loadCalendarData);
       </div>
 
       <ClientOnly>
-        <FullCalendar :options="calendarOptions">
+        <FullCalendar ref="fullCalendarRef" :options="calendarOptions">
           <template #eventContent="arg">
             <div class="calendar-event flex h-full w-full items-start justify-between gap-2">
               <div class="min-w-0">

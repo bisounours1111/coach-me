@@ -13,6 +13,7 @@ export type PublicProfileGame = {
   gameIconUrl: string | null;
   isCoach: boolean;
   playerRankLabel: string | null;
+  playerRankIconUrl: string | null;
 };
 
 export type PublicCoachingOffer = {
@@ -63,38 +64,20 @@ export const usePublicProfile = () => {
 
     const { data: roleRows, error: rolesError } = await (client as any)
       .from("profile_game_roles")
-      .select("id,game_id,is_coach,player_rank_id,games(name,icon_url)")
+      .select("id,game_id,is_coach,player_rank_id,games(name,icon_url),game_ranks(label,icon_url)")
       .eq("profile_id", profileId);
     if (rolesError) throw rolesError;
 
     const rawRoles = (roleRows ?? []) as Array<Record<string, any>>;
-    const rankIds = rawRoles
-      .map((row) => row.player_rank_id)
-      .filter((id) => Boolean(id)) as string[];
-
-    let rankLabelById = new Map<string, string>();
-    if (rankIds.length) {
-      const { data: rankRows, error: ranksError } = await (client as any)
-        .from("game_ranks")
-        .select("id,label")
-        .in("id", rankIds);
-      if (ranksError) throw ranksError;
-      rankLabelById = new Map(
-        ((rankRows ?? []) as Array<{ id: string; label: string }>).map(
-          (rank) => [rank.id, rank.label],
-        ),
-      );
-    }
 
     const games: PublicProfileGame[] = rawRoles.map((row) => ({
       profileGameRoleId: String(row.id),
       gameId: String(row.game_id),
       gameName: String(row.games?.name ?? "Jeu"),
-      gameIconUrl: row.games?.icon_url ? String(row.games.icon_url) : null,
+      gameIconUrl: row.games?.icon_url ? `${row.games.icon_url}${row.games.icon_url.includes('?') ? '&' : '?'}t=${Date.now()}` : null,
       isCoach: Boolean(row.is_coach),
-      playerRankLabel: row.player_rank_id
-        ? (rankLabelById.get(String(row.player_rank_id)) ?? null)
-        : null,
+      playerRankLabel: row.game_ranks?.label ?? null,
+      playerRankIconUrl: row.game_ranks?.icon_url ? `${row.game_ranks.icon_url}${row.game_ranks.icon_url.includes('?') ? '&' : '?'}t=${Date.now()}` : null,
     }));
 
     const roleIds = games.map((game) => game.profileGameRoleId);

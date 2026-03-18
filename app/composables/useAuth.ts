@@ -59,7 +59,7 @@ export const useAuth = () => {
     }
 
     if (data.user && data.session) {
-      await router.push("/dashboard");
+      await router.push("/profile/edit");
     }
 
     return data.user ?? null;

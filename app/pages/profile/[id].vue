@@ -65,7 +65,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
 
 <template>
   <div
-    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30"
+    class="min-h-screen bg-[#050812] text-slate-200 selection:bg-teal-500/30 overflow-x-hidden flex flex-col"
   >
     <!-- Loading State -->
     <div
@@ -141,22 +141,22 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
         />
       </div>
 
-      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16">
+      <main class="mx-auto max-w-6xl px-4 pb-32 mt-12 md:mt-16 flex-1">
         <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
           <!-- Left Column: Coaching & Content -->
-          <div class="space-y-16">
+          <div class="space-y-12 md:space-y-16">
             <!-- Coaching Sections -->
-            <div v-if="coachGames.length > 0" class="space-y-20">
+            <div v-if="coachGames.length > 0" class="space-y-16 md:space-y-20">
               <div
                 v-for="game in coachGames"
                 :key="game.profileGameRoleId"
-                class="space-y-10"
+                class="space-y-8 md:space-y-10"
               >
                 <!-- Section Header -->
-                <div class="flex items-center gap-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                   <div
                     v-if="game.gameIconUrl"
-                    class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl shadow-teal-950/20"
+                    class="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl shadow-teal-950/20"
                   >
                     <img
                       :src="game.gameIconUrl"
@@ -166,18 +166,18 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                   </div>
                   <div
                     v-else
-                    class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
+                    class="flex h-12 w-12 md:h-14 md:w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-indigo-600 text-xl font-black text-white shadow-xl shadow-teal-950/20"
                   >
                     {{ game.gameName.charAt(0) }}
                   </div>
                   <div class="min-w-0 flex-1">
                     <h2
-                      class="truncate text-2xl font-black text-white md:text-3xl"
+                      class="truncate text-xl font-black text-white md:text-3xl"
                     >
                       Coaching {{ game.gameName }}
                     </h2>
                     <p
-                      class="text-sm font-bold uppercase tracking-widest text-teal-500/80"
+                      class="text-xs md:text-sm font-bold uppercase tracking-widest text-teal-500/80"
                     >
                       {{
                         profile.offersByRoleId[game.profileGameRoleId]
@@ -189,7 +189,7 @@ const getAllVideoUrls = (offers: CoachingOfferList) => [
                 </div>
 
                 <!-- Offers Grid -->
-                <div class="grid gap-6 md:grid-cols-2">
+                <div class="grid gap-6 sm:grid-cols-2">
                   <ProfilePricingCard
                     v-for="offer in profile.offersByRoleId[
                       game.profileGameRoleId

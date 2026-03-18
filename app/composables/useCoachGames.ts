@@ -65,7 +65,7 @@ export const useCoachGames = () => {
       id: game.id,
       slug: game.slug,
       name: game.name,
-      iconUrl: game.icon_url,
+      iconUrl: game.icon_url ? `${game.icon_url}${game.icon_url.includes('?') ? '&' : '?'}t=${Date.now()}` : null,
     })) as GameOption[];
   };
 
@@ -153,7 +153,7 @@ export const useCoachGames = () => {
     const { data, error } = await (client as any)
       .from("game_ranks")
       .select("id,game_id,label,icon_url")
-      .order("label", { ascending: true });
+      .order("sort_order", { ascending: true });
     if (error) throw error;
 
     const grouped: Record<string, GameRankOption[]> = {};
@@ -164,7 +164,7 @@ export const useCoachGames = () => {
         id: String(row.id),
         gameId,
         label: String(row.label ?? ""),
-        iconUrl: row.icon_url ? String(row.icon_url) : null,
+        iconUrl: row.icon_url ? `${row.icon_url}${row.icon_url.includes('?') ? '&' : '?'}t=${Date.now()}` : null,
       });
       grouped[gameId] = gameRanks;
     }

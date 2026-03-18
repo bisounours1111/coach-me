@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getSupabaseAdmin, getUserIdFromAuthHeader } from "./_shared/supabase.ts";
+import {
+  getSupabaseAdmin,
+  getUserIdFromAuthHeader,
+} from "./_shared/supabase.ts";
 import { getStripe } from "./_shared/stripe.ts";
 import { verifySessionActionToken } from "./_shared/session_token.ts";
 
-type ActionPayload = { session_id: string; action: "confirm" | "cancel" | "validate" };
+type ActionPayload = {
+  session_id: string;
+  action: "confirm" | "cancel" | "validate";
+};
 
 async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
@@ -16,7 +22,7 @@ async function sha256Hex(input: string): Promise<string> {
 /** Vérifie le token via la table session_action_tokens (one-time, ne dépend pas du secret). */
 async function verifyDbSessionActionToken(
   supabase: ReturnType<typeof getSupabaseAdmin>,
-  token: string
+  token: string,
 ): Promise<ActionPayload | null> {
   const tokenHash = await sha256Hex(token);
   const { data: row, error: fetchErr } = await supabase
@@ -41,17 +47,29 @@ async function verifyDbSessionActionToken(
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 function appUrl(): string {
-  const raw = (Deno.env.get("CLIENT_URL") || Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+  const raw = (
+    Deno.env.get("CLIENT_URL") ||
+    Deno.env.get("PUBLIC_APP_URL") ||
+    ""
+  )
+    .trim()
+    .replace(/\/$/, "");
   if (raw && !raw.includes("localhost")) return raw;
   return "https://coach-me-nine.vercel.app";
 }
 
-function htmlPage(title: string, message: string, linkText: string, linkHref: string): string {
+function htmlPage(
+  title: string,
+  message: string,
+  linkText: string,
+  linkHref: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="utf-8"><title>${title}</title></head>
@@ -81,7 +99,7 @@ serve(async (req: Request) => {
     if (!payload) {
       payload = await verifySessionActionToken(token);
     }
-  } 
+  }
   // 2. Essayer par authentification (via app)
   else if (req.method === "POST") {
     userId = getUserIdFromAuthHeader(req);
@@ -99,32 +117,54 @@ serve(async (req: Request) => {
 
   if (!payload) {
     return new Response(
-      token 
-        ? htmlPage("Lien invalide ou expiré", "Ce lien a expiré ou a déjà été utilisé.", "Retour à l'app", appUrl())
+      token
+        ? htmlPage(
+            "Lien invalide ou expiré",
+            "Ce lien a expiré ou a déjà été utilisé.",
+            "Retour à l'app",
+            appUrl(),
+          )
         : JSON.stringify({ error: "Non autorisé ou paramètres manquants" }),
-      { 
-        status: token ? 400 : 401, 
-        headers: { ...corsHeaders, "Content-Type": token ? "text/html; charset=utf-8" : "application/json" } 
-      }
+      {
+        status: token ? 400 : 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": token
+            ? "text/html; charset=utf-8"
+            : "application/json",
+        },
+      },
     );
   }
 
   // 3. Récupérer la session pour vérifier les droits et le statut actuel
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id, status, coach_id, student_id, stripe_payment_intent_id, slot_id")
+    .select(
+      "id, status, coach_id, student_id, stripe_payment_intent_id, slot_id",
+    )
     .eq("id", payload.session_id)
     .single();
 
   if (sessionError || !session) {
     return new Response(
-      token 
-        ? htmlPage("Session introuvable", "Cette session n'existe pas.", "Retour à l'app", appUrl())
+      token
+        ? htmlPage(
+            "Session introuvable",
+            "Cette session n'existe pas.",
+            "Retour à l'app",
+            appUrl(),
+          )
         : JSON.stringify({ error: "Session introuvable" }),
-      { 
-        status: 404, 
-        headers: { ...corsHeaders, "Content-Type": token ? "text/html; charset=utf-8" : "application/json" } 
-      }
+      {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": token
+            ? "text/html; charset=utf-8"
+            : "application/json",
+        },
+      },
     );
   }
 
@@ -137,7 +177,7 @@ serve(async (req: Request) => {
       .select("profile_game_role_id")
       .eq("id", session.coach_id)
       .single();
-    
+
     let coachUserId = null;
     if (coachProfile?.profile_game_role_id) {
       const { data: pgr } = await supabase
@@ -152,24 +192,33 @@ serve(async (req: Request) => {
     const isStudent = userId === session.student_id;
 
     if (!isCoach && !isStudent) {
-      return new Response(JSON.stringify({ error: "Action non autorisée pour cet utilisateur" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Action non autorisée pour cet utilisateur" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (payload.action === "confirm" && !isCoach) {
-      return new Response(JSON.stringify({ error: "Seul le coach peut confirmer la session" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Seul le coach peut confirmer la session" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (payload.action === "validate" && !isCoach) {
-      return new Response(JSON.stringify({ error: "Seul le coach peut valider la session" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Seul le coach peut valider la session" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
   }
 
@@ -180,10 +229,29 @@ serve(async (req: Request) => {
     result: "confirmed" | "canceled" | "validated" | "error",
   ) => {
     if (token) {
-      if (success) return new Response(null, { status: 302, headers: { ...corsHeaders, Location: `${appUrl()}/session/action?result=${result}` } });
-      return new Response(htmlPage("Erreur", message, "Retour à l'app", appUrl()), { status, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+      if (success)
+        return new Response(null, {
+          status: 302,
+          headers: {
+            ...corsHeaders,
+            Location: `${appUrl()}/session/action?result=${result}`,
+          },
+        });
+      return new Response(
+        htmlPage("Erreur", message, "Retour à l'app", appUrl()),
+        {
+          status,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/html; charset=utf-8",
+          },
+        },
+      );
     }
-    return new Response(JSON.stringify({ success, message, result }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success, message, result }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   };
 
   if (payload.action === "confirm") {
@@ -211,7 +279,12 @@ serve(async (req: Request) => {
         return respond(200, true, "Ce créneau est déjà confirmé.", "confirmed");
       }
       if (slot?.status !== "upcoming" && slot?.status !== "pending") {
-        return respond(409, false, "Ce créneau n'est plus confirmable.", "error");
+        return respond(
+          409,
+          false,
+          "Ce créneau n'est plus confirmable.",
+          "error",
+        );
       }
 
       const { error: slotError } = await supabase
@@ -221,7 +294,12 @@ serve(async (req: Request) => {
 
       if (slotError) {
         console.error("session-action confirm slot", slotError);
-        return respond(500, false, "Impossible de bloquer le créneau.", "error");
+        return respond(
+          500,
+          false,
+          "Impossible de bloquer le créneau.",
+          "error",
+        );
       }
     }
 
@@ -230,17 +308,27 @@ serve(async (req: Request) => {
       .from("sessions")
       .update({ status: "upcoming" })
       .eq("id", session.id);
-    
+
     if (updateError) {
       console.error("session-action confirm update", updateError);
-      return respond(500, false, "Impossible de confirmer la session.", "error");
+      return respond(
+        500,
+        false,
+        "Impossible de confirmer la session.",
+        "error",
+      );
     }
     return respond(200, true, "Session confirmée avec succès.", "confirmed");
   }
 
   if (payload.action === "cancel") {
     if (session.status === "canceled") {
-      return respond(200, true, "Cette session a déjà été annulée.", "canceled");
+      return respond(
+        200,
+        true,
+        "Cette session a déjà été annulée.",
+        "canceled",
+      );
     }
 
     // Interdit si le créneau est déjà booked (confirmé par le coach)
@@ -259,8 +347,17 @@ serve(async (req: Request) => {
         );
       }
       // Autoriser seulement tant que upcoming/pending
-      if (slot?.status && slot.status !== "upcoming" && slot.status !== "pending") {
-        return respond(409, false, "Ce créneau ne peut plus être annulé.", "error");
+      if (
+        slot?.status &&
+        slot.status !== "upcoming" &&
+        slot.status !== "pending"
+      ) {
+        return respond(
+          409,
+          false,
+          "Ce créneau ne peut plus être annulé.",
+          "error",
+        );
       }
     }
 
@@ -268,7 +365,7 @@ serve(async (req: Request) => {
       .from("sessions")
       .update({ status: "canceled" })
       .eq("id", session.id);
-    
+
     if (updateError) {
       console.error("session-action cancel update", updateError);
       return respond(500, false, "Impossible d'annuler la session.", "error");
@@ -278,7 +375,9 @@ serve(async (req: Request) => {
     if (session.stripe_payment_intent_id) {
       try {
         const stripe = getStripe();
-        await stripe.refunds.create({ payment_intent: session.stripe_payment_intent_id });
+        await stripe.refunds.create({
+          payment_intent: session.stripe_payment_intent_id,
+        });
 
         // Ledger interne: créer une transaction de débit pour annuler le crédit initial du coach
         const { data: originalTx } = await supabase
@@ -337,7 +436,12 @@ serve(async (req: Request) => {
         .eq("id", session.slot_id);
       if (slotError) {
         console.error("session-action validate slot", slotError);
-        return respond(500, false, "Impossible de valider le créneau.", "error");
+        return respond(
+          500,
+          false,
+          "Impossible de valider le créneau.",
+          "error",
+        );
       }
     }
 

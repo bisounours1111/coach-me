@@ -4,7 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -38,7 +39,7 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const { data: existingSession } = await supabaseAdmin
@@ -49,21 +50,27 @@ serve(async (req) => {
 
     if (existingSession) {
       if (existingSession.status === "paid") {
-        return new Response(JSON.stringify({ success: true, alreadyProcessed: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
+        return new Response(
+          JSON.stringify({ success: true, alreadyProcessed: true }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          },
+        );
       }
     }
 
-    const { offerId, coachId, studentId, gameName, hourlyRate, slotId } = session.metadata || {};
+    const { offerId, coachId, studentId, gameName, hourlyRate, slotId } =
+      session.metadata || {};
 
     if (!slotId) {
       throw new Error("Slot ID manquant dans les métadonnées Stripe");
     }
 
     if (!offerId) {
-      throw new Error("offerId manquant dans les métadonnées Stripe (coachings.id attendu)");
+      throw new Error(
+        "offerId manquant dans les métadonnées Stripe (coachings.id attendu)",
+      );
     }
 
     if (!studentId) {
@@ -112,20 +119,22 @@ serve(async (req) => {
         throw updateError;
       }
     } else {
-      const { error: insertError } = await supabaseAdmin.from("sessions").insert({
-        // NB: coach_id référence public.coachings(id) (pas profiles / coaches)
-        coach_id: offerId,
-        student_id: studentId,
-        slot_id: finalSlotId,
-        game: gameName,
-        price: parseFloat(hourlyRate || "0"),
-        status: "paid",
-        stripe_session_id: sessionId,
-        stripe_payment_status: session.payment_status,
-        start_at: slot.start_at,
-        end_at: slot.end_at,
-        duration_minutes: 60,
-      });
+      const { error: insertError } = await supabaseAdmin
+        .from("sessions")
+        .insert({
+          // NB: coach_id référence public.coachings(id) (pas profiles / coaches)
+          coach_id: offerId,
+          student_id: studentId,
+          slot_id: finalSlotId,
+          game: gameName,
+          price: parseFloat(hourlyRate || "0"),
+          status: "paid",
+          stripe_session_id: sessionId,
+          stripe_payment_status: session.payment_status,
+          start_at: slot.start_at,
+          end_at: slot.end_at,
+          duration_minutes: 60,
+        });
 
       if (insertError) {
         console.error("Insert error:", insertError);

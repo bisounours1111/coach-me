@@ -54,12 +54,6 @@ const PLATFORM_FEE_RATE = 0.15; // 15%
 const stats = computed(() => {
   const all = sessions.value;
   const now = Date.now();
-  const upcoming = all.filter((s) => {
-    const start = Date.parse(String(s.start_at));
-    if (!Number.isFinite(start)) return false;
-    // On considère "à venir" si la session est payée/planifiée et dans le futur
-    return start >= now && ["paid", "upcoming"].includes(String(s.status));
-  }).length;
   const done = all.filter((s) => s.status === "done").length;
   // Revenus : uniquement sessions payées/confirmées/terminées (jamais canceled/remboursées)
   const paidLike = all.filter(
@@ -69,12 +63,17 @@ const stats = computed(() => {
   const netRevenue = grossRevenue * (1 - PLATFORM_FEE_RATE);
 
   return {
-    upcoming,
     done,
     total: all.length,
     grossRevenue,
     netRevenue,
   };
+});
+
+const transactions = computed(() => {
+  return sessions.value
+    .filter((s) => ["paid", "canceled"].includes(s.status))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 });
 
 const formatMoney = (amount: number) =>
@@ -165,17 +164,7 @@ onMounted(async () => {
     </header>
 
     <!-- Stats -->
-    <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          À venir
-        </p>
-        <p class="mt-2 text-3xl font-black text-teal-400">
-          {{ loading ? "…" : stats.upcoming }}
-        </p>
-      </div>
+    <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
         <p
           class="text-[10px] font-black uppercase tracking-wider text-slate-500"
@@ -190,7 +179,7 @@ onMounted(async () => {
         <p
           class="text-[10px] font-black uppercase tracking-wider text-slate-500"
         >
-          Total
+          Total sessions
         </p>
         <p class="mt-2 text-3xl font-black text-indigo-300">
           {{ loading ? "…" : stats.total }}
@@ -200,7 +189,7 @@ onMounted(async () => {
         <p
           class="text-[10px] font-black uppercase tracking-wider text-slate-500"
         >
-          À payer
+          Solde à payer
         </p>
         <p class="mt-2 text-3xl font-black text-indigo-400">
           {{ walletLoading ? "…" : eur(walletBalance?.availableCents ?? 0) }}
@@ -257,25 +246,6 @@ onMounted(async () => {
     <div class="mb-10 grid gap-4 md:grid-cols-2">
       <div class="rounded-3xl border border-white/5 bg-white/[0.02] p-8">
         <div
-          class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10"
-        >
-          <UIcon name="i-heroicons-user-circle" class="h-6 w-6 text-teal-400" />
-        </div>
-        <h3 class="text-base font-black text-white">Mon profil public</h3>
-        <p class="mt-1 text-sm text-slate-500">
-          Configure tes offres, tes jeux et ta bio pour attirer plus d'élèves.
-        </p>
-        <NuxtLink
-          to="/profile/edit"
-          class="mt-5 inline-flex items-center gap-1.5 text-xs font-black text-teal-400 transition hover:text-teal-300"
-        >
-          Modifier mon profil
-          <UIcon name="i-heroicons-arrow-right" class="h-3.5 w-3.5" />
-        </NuxtLink>
-      </div>
-
-      <div class="rounded-3xl border border-white/5 bg-white/[0.02] p-8">
-        <div
           class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10"
         >
           <UIcon
@@ -290,41 +260,62 @@ onMounted(async () => {
               ? "Chargement…"
               : sessions.length === 0
                 ? "Aucune session pour l'instant."
-                : "Voici tes dernières sessions."
+                : "Consultez votre planning de réservations."
           }}
         </p>
-        <div v-if="!loading && sessions.length > 0" class="mt-5 space-y-3">
+        <NuxtLink
+          to="/dashboard/coach/sessions"
+          class="mt-5 inline-flex items-center gap-1.5 text-xs font-black text-indigo-400 transition hover:text-indigo-300"
+        >
+          Voir mes sessions
+          <UIcon name="i-heroicons-arrow-right" class="h-3.5 w-3.5" />
+        </NuxtLink>
+      </div>
+
+      <div class="rounded-3xl border border-white/5 bg-white/[0.02] p-8">
+        <div
+          class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10"
+        >
+          <UIcon
+            name="i-heroicons-banknotes"
+            class="h-6 w-6 text-teal-400"
+          />
+        </div>
+        <h3 class="text-base font-black text-white">Mes transactions</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Historique des paiements et annulations.
+        </p>
+        
+        <div v-if="!loading && transactions.length > 0" class="mt-5 space-y-3">
           <div
-            v-for="s in sessions.slice(0, 5)"
-            :key="s.id"
-            class="rounded-2xl border border-white/5 bg-white/[0.02] p-4"
+            v-for="t in transactions.slice(0, 5)"
+            :key="t.id"
+            class="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4"
           >
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0">
-                <p class="truncate text-sm font-black text-white">
-                  {{ s.game || "Coaching" }}
-                </p>
-                <p class="mt-1 text-xs text-teal-400/90">
-                  Apprenti : {{ s.student_name ?? "—" }}
-                </p>
-                <p class="mt-1 text-xs text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-black text-teal-300">{{ s.status }}</p>
-                <p class="mt-1 text-sm font-black text-white">
-                  {{ Number(s.price).toFixed(0) }}€
-                </p>
-              </div>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-black text-white">
+                {{ t.game || "Coaching" }}
+              </p>
+              <p class="mt-0.5 text-[10px] text-slate-500">
+                {{ formatDateTime(t.created_at) }}
+              </p>
+            </div>
+            <div class="text-right">
+              <p 
+                class="text-sm font-black"
+                :class="t.status === 'canceled' ? 'text-rose-500 line-through' : 'text-teal-400'"
+              >
+                {{ Number(t.price).toFixed(0) }}€
+              </p>
+              <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+                {{ t.status === 'canceled' ? 'Annulé' : 'Payé' }}
+              </p>
             </div>
           </div>
-          <p class="text-[10px] font-bold text-slate-500">
-            Recettes estimées: {{ formatMoney(stats.grossRevenue) }} brut →
-            {{ formatMoney(stats.netRevenue) }} net (commission
-            {{ Math.round(PLATFORM_FEE_RATE * 100) }}%).
-          </p>
         </div>
+        <p v-else-if="!loading" class="mt-5 text-xs italic text-slate-600">
+          Aucune transaction récente.
+        </p>
       </div>
     </div>
   </div>

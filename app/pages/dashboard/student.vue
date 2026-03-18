@@ -13,98 +13,72 @@ const { getSessions } = useSessions();
 const { getCoachProfile } = useCoachProfile();
 
 const loading = ref(true);
-const error = ref<string | null>(null);
 const sessions = ref<any[]>([]);
 const profileName = ref<string | null>(null);
+const activeTab = ref<"upcoming" | "reservations" | "completed">("upcoming");
 
 const displayName = computed(() => {
   if (profileName.value) return profileName.value;
   if (!user.value) return "Joueur";
-
-  // Priorité au full_name dans les metadata de l'utilisateur si présent
   const metaName =
     user.value.user_metadata?.full_name || user.value.user_metadata?.name;
   if (metaName) return metaName;
-
   const email = user.value.email ?? "";
   return email.split("@")[0] || "Joueur";
 });
 
-const sortedSessions = computed(() =>
-  [...sessions.value].sort(
-    (a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
-  )
-);
-
 const upcomingSessions = computed(() =>
-  sortedSessions.value.filter((s) => s.status === "upcoming")
-);
-const paidSessions = computed(() =>
-  sortedSessions.value.filter((s) => s.status === "paid")
-);
-const canceledSessions = computed(() =>
-  sortedSessions.value.filter((s) => s.status === "canceled")
-);
-const doneSessions = computed(() =>
-  sortedSessions.value.filter((s) => s.status === "done")
-);
-const otherSessions = computed(() =>
-  sortedSessions.value.filter(
-    (s) => !["upcoming", "paid", "canceled", "done"].includes(s.status)
-  )
+  sessions.value
+    .filter((s) => s.status === "upcoming")
+    .sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at))
 );
 
-const stats = computed(() => ({
-  upcoming: upcomingSessions.value.length,
-  paid: paidSessions.value.length,
-  done: doneSessions.value.length,
-  total: sessions.value.length,
-}));
+const reservationSessions = computed(() =>
+  sessions.value
+    .filter((s) => s.status === "paid")
+    .sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at))
+);
 
-const statusLabel: Record<string, string> = {
-  pending: "En attente",
-  negotiating: "En négociation",
-  accepted: "Acceptée",
-  rejected: "Refusée",
-  paid: "Payée",
-  upcoming: "À venir",
-  done: "Terminée",
-  canceled: "Annulée",
-};
+const completedSessions = computed(() =>
+  sessions.value
+    .filter((s) => s.status === "done")
+    .sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at))
+);
 
-const statusColor: Record<string, string> = {
-  pending: "text-amber-400",
-  negotiating: "text-orange-400",
-  accepted: "text-sky-400",
-  rejected: "text-rose-400",
-  paid: "text-emerald-400",
-  upcoming: "text-teal-400",
-  done: "text-slate-400",
-  canceled: "text-red-400",
-};
+const currentSessions = computed(() => {
+  if (activeTab.value === "upcoming") return upcomingSessions.value;
+  if (activeTab.value === "reservations") return reservationSessions.value;
+  if (activeTab.value === "completed") return completedSessions.value;
+  return [];
+});
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", {
-    weekday: "short",
+    weekday: "long",
     day: "2-digit",
-    month: "short",
+    month: "long",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
 
 onMounted(async () => {
-  loading.value = true;
-  error.value = null;
   try {
     if (user.value?.sub) {
       const profile = await getCoachProfile(user.value.sub);
       profileName.value = profile.fullName || null;
     }
     sessions.value = await getSessions("student");
-  } catch (e: any) {
+
+    if (upcomingSessions.value.length > 0) {
+      activeTab.value = "upcoming";
+    } else if (reservationSessions.value.length > 0) {
+      activeTab.value = "reservations";
+    } else if (completedSessions.value.length > 0) {
+      activeTab.value = "completed";
+    }
+  } catch (e) {
     console.error(e);
-    error.value =
-      e?.message || "Impossible de charger vos sessions pour le moment.";
   } finally {
     loading.value = false;
   }
@@ -113,266 +87,135 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-12">
-    <!-- Header -->
-    <header class="mb-10">
-      <p
-        class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80"
-      >
-        Espace élève
-      </p>
-      <h1 class="mt-2 text-3xl font-black text-white md:text-4xl">
-        Bienvenue, <span class="text-teal-400">{{ displayName }}</span>
-      </h1>
-      <p class="mt-2 text-sm text-slate-400">
-        Gère tes sessions de coaching et suis ta progression.
-      </p>
-    </header>
-
-    <!-- Stats -->
-    <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
-          À venir
+    <header class="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+          Espace élève
         </p>
-        <p class="mt-2 text-3xl font-black text-teal-400">
-          {{ loading ? "…" : stats.upcoming }}
+        <h1 class="mt-2 text-3xl font-black text-white md:text-4xl">
+          Bienvenue, <span class="text-teal-400">{{ displayName }}</span>
+        </h1>
+        <p class="mt-2 text-sm text-slate-400">
+          Retrouvez l'historique et le planning de vos réservations.
         </p>
       </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
-          Payées
-        </p>
-        <p class="mt-2 text-3xl font-black text-emerald-400">
-          {{ loading ? "…" : stats.paid }}
-        </p>
-      </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
-          Terminées
-        </p>
-        <p class="mt-2 text-3xl font-black text-slate-400">
-          {{ loading ? "…" : stats.done }}
-        </p>
-      </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
-          Total
-        </p>
-        <p class="mt-2 text-3xl font-black text-indigo-400">
-          {{ loading ? "…" : stats.total }}
-        </p>
-      </div>
-    </div>
-
-    <div
-      v-if="error"
-      class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6"
-    >
-      <p class="text-sm font-bold text-rose-300">{{ error }}</p>
-    </div>
-
-    <!-- Loading -->
-    <div v-else-if="loading" class="grid gap-4">
-      <div class="rounded-3xl border border-white/5 bg-white/[0.02] p-6">
-        <div class="flex items-center gap-3 text-slate-400">
-          <UIcon name="i-heroicons-arrow-path" class="h-5 w-5 animate-spin" />
-          Chargement de vos sessions…
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty state -->
-    <div
-      v-else-if="sessions.length === 0"
-      class="rounded-3xl border border-white/5 bg-white/[0.02] p-16 text-center"
-    >
-      <div
-        class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-500/10"
-      >
-        <UIcon name="i-heroicons-calendar-days" class="h-8 w-8 text-teal-400" />
-      </div>
-      <h2 class="text-xl font-black text-white">
-        Aucune session pour l'instant
-      </h2>
-      <p class="mx-auto mt-2 max-w-sm text-sm text-slate-500">
-        Trouve un coach et réserve ta première session pour commencer à
-        progresser.
-      </p>
       <NuxtLink
         to="/games"
-        class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
+        class="inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
       >
         Trouver un coach
         <UIcon name="i-heroicons-arrow-right" class="h-4 w-4" />
       </NuxtLink>
+    </header>
+
+    <div v-if="loading" class="flex justify-center py-20">
+      <div class="h-12 w-12 animate-spin rounded-full border-4 border-teal-500/20 border-t-teal-500" />
     </div>
 
-    <!-- Sections -->
-    <div v-else class="space-y-10">
-      <!-- À venir -->
-      <section v-if="upcomingSessions.length">
-        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-teal-500">
-          À venir
-        </h2>
-        <div class="grid gap-4">
-          <div
-            v-for="s in upcomingSessions"
-            :key="s.id"
-            class="rounded-3xl border border-teal-500/10 bg-teal-500/[0.03] p-6"
-          >
-            <div class="flex items-start justify-between gap-6">
-              <div class="space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
-                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
-                <p class="text-sm text-teal-400/90">Coach : {{ s.coach_name ?? "—" }}</p>
-                <p class="text-sm text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
-                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
-                  {{ statusLabel[s.status] ?? s.status }}
-                </p>
-                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <template v-else>
+      <!-- Tabs -->
+      <div class="mb-10 flex flex-wrap gap-3">
+        <button
+          @click="activeTab = 'upcoming'"
+          :disabled="upcomingSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'upcoming'
+            ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-calendar" class="h-4 w-4" />
+          À VENIR
+          <span class="ml-1 opacity-60">({{ upcomingSessions.length }})</span>
+        </button>
 
-      <!-- Payées -->
-      <section v-if="paidSessions.length">
-        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-emerald-500">
-          Payées
-        </h2>
-        <div class="grid gap-4">
-          <div
-            v-for="s in paidSessions"
-            :key="s.id"
-            class="rounded-3xl border border-emerald-500/10 bg-emerald-500/[0.03] p-6"
-          >
-            <div class="flex items-start justify-between gap-6">
-              <div class="space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
-                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
-                <p class="text-sm text-teal-400/90">Coach : {{ s.coach_name ?? "—" }}</p>
-                <p class="text-sm text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
-                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
-                  {{ statusLabel[s.status] ?? s.status }}
-                </p>
-                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        <button
+          @click="activeTab = 'reservations'"
+          :disabled="reservationSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'reservations'
+            ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-clock" class="h-4 w-4" />
+          RÉSERVATIONS
+          <span class="ml-1 opacity-60">({{ reservationSessions.length }})</span>
+        </button>
 
-      <!-- Annulées -->
-      <section v-if="canceledSessions.length">
-        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-red-500">
-          Annulées
-        </h2>
-        <div class="grid gap-4">
-          <div
-            v-for="s in canceledSessions"
-            :key="s.id"
-            class="rounded-3xl border border-red-500/10 bg-red-500/[0.03] p-6"
-          >
-            <div class="flex items-start justify-between gap-6">
-              <div class="space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
-                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
-                <p class="text-sm text-teal-400/90">Coach : {{ s.coach_name ?? "—" }}</p>
-                <p class="text-sm text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
-                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
-                  {{ statusLabel[s.status] ?? s.status }}
-                </p>
-                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        <button
+          @click="activeTab = 'completed'"
+          :disabled="completedSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'completed'
+            ? 'bg-slate-700 text-white shadow-lg shadow-slate-900/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-check-circle" class="h-4 w-4" />
+          TERMINÉ
+          <span class="ml-1 opacity-60">({{ completedSessions.length }})</span>
+        </button>
+      </div>
 
-      <!-- Terminées -->
-      <section v-if="doneSessions.length">
-        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-slate-500">
-          Terminées
-        </h2>
-        <div class="grid gap-4">
-          <div
-            v-for="s in doneSessions"
-            :key="s.id"
-            class="rounded-3xl border border-white/5 bg-white/[0.02] p-6"
-          >
-            <div class="flex items-start justify-between gap-6">
-              <div class="space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
-                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
-                <p class="text-sm text-teal-400/90">Coach : {{ s.coach_name ?? "—" }}</p>
-                <p class="text-sm text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
-                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
-                  {{ statusLabel[s.status] ?? s.status }}
-                </p>
-                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- Empty state -->
+      <div v-if="sessions.length === 0" class="rounded-3xl border border-white/5 bg-white/[0.02] p-20 text-center">
+        <UIcon name="i-heroicons-calendar" class="mx-auto h-16 w-16 text-slate-700" />
+        <h2 class="mt-6 text-xl font-bold text-white">Aucune session</h2>
+        <p class="mt-2 text-slate-500">Vous n'avez pas encore de réservations prévues.</p>
+        <NuxtLink
+          to="/games"
+          class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
+        >
+          Trouver un coach
+          <UIcon name="i-heroicons-arrow-right" class="h-4 w-4" />
+        </NuxtLink>
+      </div>
 
-      <!-- En cours (pending, negotiating, accepted, rejected…) -->
-      <section v-if="otherSessions.length">
-        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-amber-500">
-          En cours
-        </h2>
-        <div class="grid gap-4">
-          <div
-            v-for="s in otherSessions"
-            :key="s.id"
-            class="rounded-3xl border border-amber-500/10 bg-amber-500/[0.03] p-6"
-          >
-            <div class="flex items-start justify-between gap-6">
-              <div class="space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
-                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
-                <p class="text-sm text-teal-400/90">Coach : {{ s.coach_name ?? "—" }}</p>
-                <p class="text-sm text-slate-400">
-                  {{ formatDateTime(s.start_at) }}
-                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-                </p>
+      <!-- Sessions list -->
+      <div v-else class="grid gap-6">
+        <div
+          v-for="s in currentSessions"
+          :key="s.id"
+          class="group relative overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition-all hover:border-white/10 hover:bg-white/[0.04]"
+          :class="{ 'opacity-70': activeTab === 'completed' }"
+        >
+          <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-6">
+              <div
+                class="flex h-14 w-14 items-center justify-center rounded-2xl"
+                :class="activeTab === 'completed' ? 'bg-white/5 text-slate-500' : 'bg-teal-500/10 text-teal-400'"
+              >
+                <UIcon
+                  :name="activeTab === 'completed' ? 'i-heroicons-check-circle' : 'i-heroicons-academic-cap'"
+                  class="h-8 w-8"
+                />
               </div>
-              <div class="text-right">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
-                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
-                  {{ statusLabel[s.status] ?? s.status }}
-                </p>
-                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              <div>
+                <h3 class="text-lg font-black text-white">{{ s.game || "Coaching" }}</h3>
+                <p class="text-sm text-slate-400">{{ formatDateTime(s.start_at) }}</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-xs font-bold text-slate-500">Coach :</span>
+                  <span class="text-xs font-black text-teal-400">{{ s.coach_name ?? "—" }}</span>
+                </div>
               </div>
+            </div>
+
+            <div class="text-right sm:mr-6">
+              <p v-if="s.status !== 'paid'" class="text-xs font-black uppercase tracking-widest text-slate-500">
+                {{ s.status }}
+              </p>
+              <p class="text-xl font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
             </div>
           </div>
         </div>
-      </section>
-    </div>
+
+        <!-- Tab empty state -->
+        <div
+          v-if="currentSessions.length === 0"
+          class="rounded-3xl border border-white/5 bg-white/[0.02] p-16 text-center"
+        >
+          <UIcon name="i-heroicons-calendar" class="mx-auto h-12 w-12 text-slate-700" />
+          <p class="mt-4 text-slate-500">Aucune session dans cette catégorie.</p>
+        </div>
+      </div>
+    </template>
   </div>
 </template>

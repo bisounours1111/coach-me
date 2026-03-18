@@ -29,9 +29,9 @@ useHead({
           relative à vos données personnelles, vous pouvez nous contacter à
           l'adresse :
           <a
-            href="mailto:yan.dai@outlook.fr"
+            href="mailto:noreply@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >yan.dai@outlook.fr</a
+            >noreply@inventoryrp.space</a
           >.
         </p>
       </section>
@@ -160,9 +160,9 @@ useHead({
         <p>
           Pour exercer ces droits, contactez-nous à
           <a
-            href="mailto:yan.dai@outlook.fr"
+            href="mailto:noreply@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >yan.dai@outlook.fr</a
+            >noreply@inventoryrp.space</a
           >. Vous pouvez également introduire une réclamation auprès de la
           <a
             href="https://www.cnil.fr"

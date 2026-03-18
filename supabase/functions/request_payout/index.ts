@@ -50,23 +50,45 @@ async function getWalletAvailableCents(
   profileId: string,
 ): Promise<number> {
   const walletId = await getOrCreateWalletId(supabaseAdmin, profileId);
-  const { data, error } = await supabaseAdmin
+  const { data: txData, error } = await supabaseAdmin
     .from("transactions")
-    .select("type,status,amount")
+    .select("type,status,amount, stripe_id, session_id")
     .eq("wallet_id", walletId);
 
   if (error) throw new Error("Impossible de lire les transactions");
 
+  const sessionIds = [...new Set((txData ?? []).map((t: any) => t.session_id).filter(Boolean))];
+  const sessionStatusMap: Record<string, string> = {};
+  if (sessionIds.length > 0) {
+    const { data: sessions } = await supabaseAdmin
+      .from("sessions")
+      .select("id, status")
+      .in("id", sessionIds);
+    for (const s of sessions ?? []) {
+      sessionStatusMap[String((s as any).id)] = String((s as any).status || "");
+    }
+  }
+
   let credits = 0;
   let debits = 0;
-  for (const t of data ?? []) {
+  for (const t of txData ?? []) {
     const status = String((t as any).status || "");
     if (status !== "succeeded" && status !== "pending") continue;
 
     const type = String((t as any).type || "");
     const cents = toCents((t as any).amount);
-    if (type === "credit") credits += cents;
-    if (type === "payout") debits += cents;
+    const sessionStatus = (t as any).session_id
+      ? sessionStatusMap[String((t as any).session_id)] ?? ""
+      : "";
+
+    if (type === "credit") {
+      if (sessionStatus !== "canceled") {
+        credits += cents;
+      }
+    }
+    if (type === "payout") {
+      debits += cents;
+    }
   }
 
   return Math.max(0, credits - debits);

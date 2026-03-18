@@ -64,7 +64,7 @@ const stats = computed(() => {
 
   return {
     done,
-    total: all.length,
+    total: all.filter((s) => s.status !== "canceled").length,
     grossRevenue,
     netRevenue,
   };
@@ -72,7 +72,7 @@ const stats = computed(() => {
 
 const transactions = computed(() => {
   return sessions.value
-    .filter((s) => ["paid", "canceled"].includes(s.status))
+    .filter((s) => ["paid", "done", "canceled"].includes(s.status))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 });
 
@@ -100,6 +100,11 @@ onMounted(async () => {
 
     walletLoading.value = true;
     walletError.value = null;
+    try {
+      await supabase.auth.refreshSession();
+    } catch {
+      /* ignore refresh errors */
+    }
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
     if (accessToken) {
@@ -107,7 +112,7 @@ onMounted(async () => {
         "get_wallet_balance",
         {
           body: {},
-          headers: { authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         },
       );
       if (fnError) throw fnError;
@@ -118,7 +123,11 @@ onMounted(async () => {
     }
   } catch (e: any) {
     console.error(e);
-    error.value = e?.message || "Impossible de charger vos sessions.";
+    const msg = e?.message || "";
+    error.value =
+      msg.includes("401") || msg.includes("JWT") || msg.includes("Invalid")
+        ? "Session expirée. Déconnectez-vous puis reconnectez-vous."
+        : msg || "Impossible de charger vos sessions.";
   } finally {
     loading.value = false;
     walletLoading.value = false;

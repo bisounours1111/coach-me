@@ -154,6 +154,29 @@ serve(async (req: Request) => {
       try {
         const stripe = getStripe();
         await stripe.refunds.create({ payment_intent: session.stripe_payment_intent_id });
+
+        // Ledger interne: créer une transaction de débit pour annuler le crédit initial du coach
+        // On récupère la transaction de crédit initiale pour avoir le montant exact (net)
+        const { data: originalTx } = await supabase
+          .from("transactions")
+          .select("wallet_id, profile_id, amount, currency")
+          .eq("session_id", session.id)
+          .eq("type", "credit")
+          .maybeSingle();
+
+        if (originalTx) {
+          await supabase.from("transactions").insert({
+            wallet_id: originalTx.wallet_id,
+            profile_id: originalTx.profile_id,
+            session_id: session.id,
+            type: "payout", // On utilise payout ou on pourrait créer un type 'refund'
+            status: "succeeded",
+            amount: originalTx.amount, // On débite le même montant net qui avait été crédité
+            fee: "0.00",
+            currency: originalTx.currency,
+            stripe_id: `refund_${session.stripe_payment_intent_id}`,
+          });
+        }
       } catch (err) {
         console.error("session-action refund", (err as Error).message);
       }

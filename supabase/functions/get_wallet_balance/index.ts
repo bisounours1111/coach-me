@@ -54,35 +54,67 @@ serve(async (req: Request) => {
     const supabaseAdmin = getSupabaseAdmin();
     const walletId = await getOrCreateWalletId(supabaseAdmin, userId);
 
-    const { data, error } = await supabaseAdmin
+    const { data: txData, error } = await supabaseAdmin
       .from("transactions")
-      .select("type,status,amount")
+      .select("type,status,amount, stripe_id, session_id")
       .eq("wallet_id", walletId);
 
     if (error) throw new Error("Impossible de lire les transactions");
 
-    let earnedCents = 0;
-    let withdrawnCents = 0;
-    let pendingPayoutCents = 0;
-    for (const t of data ?? []) {
-      const status = String((t as any).status || "");
-      const type = String((t as any).type || "");
-      const cents = toCents((t as any).amount);
-
-      if (type === "credit" && status === "succeeded") {
-        earnedCents += cents;
-      }
-      if (type === "payout" && status === "succeeded") {
-        withdrawnCents += cents;
-      }
-      if (type === "payout" && status === "pending") {
-        pendingPayoutCents += cents;
+    // Récupérer les statuts des sessions séparément (plus fiable que la jointure PostgREST)
+    const sessionIds = [...new Set((txData ?? []).map((t: any) => t.session_id).filter(Boolean))];
+    const sessionStatusMap: Record<string, string> = {};
+    if (sessionIds.length > 0) {
+      const { data: sessions } = await supabaseAdmin
+        .from("sessions")
+        .select("id, status")
+        .in("id", sessionIds);
+      for (const s of sessions ?? []) {
+        sessionStatusMap[String((s as any).id)] = String((s as any).status || "");
       }
     }
 
+    let earnedCents = 0;
+    let withdrawnCents = 0;
+    let pendingPayoutCents = 0;
+    let refundCents = 0;
+
+    for (const t of txData ?? []) {
+      const status = String((t as any).status || "");
+      const type = String((t as any).type || "");
+      const cents = toCents((t as any).amount);
+      const stripeId = String((t as any).stripe_id || "");
+      const sessionStatus = (t as any).session_id
+        ? sessionStatusMap[String((t as any).session_id)] ?? ""
+        : "";
+
+      if (type === "credit" && status === "succeeded") {
+        if (sessionStatus !== "canceled") {
+          earnedCents += cents;
+        }
+      }
+      if (type === "payout") {
+        const isRefund =
+          stripeId.startsWith("refund_") ||
+          stripeId.startsWith("manual_refund_") ||
+          sessionStatus === "canceled";
+
+        if (status === "succeeded") {
+          if (isRefund) {
+            refundCents += cents;
+          } else {
+            withdrawnCents += cents;
+          }
+        } else if (status === "pending" && !isRefund) {
+          pendingPayoutCents += cents;
+        }
+      }
+    }
+
+    // Le solde disponible est : Revenus valides - Retraits confirmés - Retraits en attente - Remboursements effectués
     const availableCents = Math.max(
       0,
-      earnedCents - withdrawnCents - pendingPayoutCents,
+      earnedCents - withdrawnCents - pendingPayoutCents - refundCents,
     );
 
     const { data: profile } = await supabaseAdmin

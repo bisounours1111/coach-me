@@ -39,7 +39,7 @@ const benefits = [
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col px-4">
+  <div class="flex min-h-screen flex-col px-4 pb-12 sm:pb-0">
     <!-- ── HERO ──────────────────────────────────────────────────────── -->
     <section class="relative py-24 sm:py-32">
       <!-- Glow de fond -->

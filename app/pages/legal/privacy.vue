@@ -29,9 +29,9 @@ useHead({
           relative à vos données personnelles, vous pouvez nous contacter à
           l'adresse :
           <a
-            href="mailto:contact@coach-me.app"
+            href="mailto:noreply@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >contact@coach-me.app</a
+            >noreply@inventoryrp.space</a
           >.
         </p>
       </section>
@@ -102,8 +102,8 @@ useHead({
             suivant la fermeture du compte.
           </li>
           <li>
-            <span class="text-slate-200">Messages</span> : conservés pendant 12
-            mois après la dernière activité de la conversation.
+            <span class="text-slate-200">Messages</span> : conservés pendant
+            180 jours, puis supprimés automatiquement.
           </li>
           <li>
             <span class="text-slate-200">Réservations et sessions</span> :
@@ -122,7 +122,7 @@ useHead({
         <p>
           Vos données ne sont pas vendues ni cédées à des tiers à des fins
           commerciales. Elles sont hébergées sur
-          <strong class="text-slate-200">Supabase</strong> (infrastructure
+          <strong class="text-slate-200">Vercel</strong> (infrastructure
           cloud, serveurs en Europe). Certaines données de profil (nom, avatar,
           jeux) sont visibles publiquement sur votre page profil.
         </p>
@@ -160,9 +160,9 @@ useHead({
         <p>
           Pour exercer ces droits, contactez-nous à
           <a
-            href="mailto:contact@coach-me.app"
+            href="mailto:noreply@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >contact@coach-me.app</a
+            >noreply@inventoryrp.space</a
           >. Vous pouvez également introduire une réclamation auprès de la
           <a
             href="https://www.cnil.fr"
@@ -178,15 +178,15 @@ useHead({
       <section class="space-y-3">
         <h2 class="text-base font-bold text-white">7. Hébergeur</h2>
         <p class="text-slate-400">
-          <span class="text-slate-200">Supabase, Inc.</span><br />
-          970 Toa Payoh North, Singapour — infrastructure cloud AWS eu-west
-          (Europe)<br />
+          <span class="text-slate-200">Vercel, Inc.</span><br />
+          440 N Barranca Ave #4133, Covina, CA 91723, États-Unis — infrastructure
+          cloud, région Europe (Frankfurt)<br />
           <a
-            href="https://supabase.com/privacy"
+            href="https://vercel.com/legal/privacy-policy"
             target="_blank"
             rel="noopener"
             class="text-teal-400 hover:underline"
-            >Politique de confidentialité Supabase</a
+            >Politique de confidentialité Vercel</a
           >
         </p>
       </section>
@@ -196,8 +196,8 @@ useHead({
         <h2 class="text-base font-bold text-white">8. Cookies</h2>
         <p>
           CoachMe utilise uniquement des cookies strictement nécessaires au
-          fonctionnement de l'authentification (session Supabase). Aucun cookie
-          publicitaire ou de tracking tiers n'est utilisé.
+          fonctionnement de l'authentification. Aucun cookie publicitaire ou de
+          tracking tiers n'est utilisé.
         </p>
       </section>
     </div>

@@ -24,18 +24,58 @@ const displayName = computed(() => {
   return email.split("@")[0] || "Joueur";
 });
 
-const stats = computed(() => {
-  const all = sessions.value;
-  const upcoming = all.filter((s) => s.status === "upcoming").length;
-  const pending = all.filter((s) => s.status === "pending").length;
-  const done = all.filter((s) => s.status === "done").length;
-  return {
-    upcoming,
-    pending,
-    done,
-    total: all.length,
-  };
-});
+const sortedSessions = computed(() =>
+  [...sessions.value].sort(
+    (a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
+  )
+);
+
+const upcomingSessions = computed(() =>
+  sortedSessions.value.filter((s) => s.status === "upcoming")
+);
+const paidSessions = computed(() =>
+  sortedSessions.value.filter((s) => s.status === "paid")
+);
+const canceledSessions = computed(() =>
+  sortedSessions.value.filter((s) => s.status === "canceled")
+);
+const doneSessions = computed(() =>
+  sortedSessions.value.filter((s) => s.status === "done")
+);
+const otherSessions = computed(() =>
+  sortedSessions.value.filter(
+    (s) => !["upcoming", "paid", "canceled", "done"].includes(s.status)
+  )
+);
+
+const stats = computed(() => ({
+  upcoming: upcomingSessions.value.length,
+  paid: paidSessions.value.length,
+  done: doneSessions.value.length,
+  total: sessions.value.length,
+}));
+
+const statusLabel: Record<string, string> = {
+  pending: "En attente",
+  negotiating: "En négociation",
+  accepted: "Acceptée",
+  rejected: "Refusée",
+  paid: "Payée",
+  upcoming: "À venir",
+  done: "Terminée",
+  canceled: "Annulée",
+};
+
+const statusColor: Record<string, string> = {
+  pending: "text-amber-400",
+  negotiating: "text-orange-400",
+  accepted: "text-sky-400",
+  rejected: "text-rose-400",
+  paid: "text-emerald-400",
+  upcoming: "text-teal-400",
+  done: "text-slate-400",
+  canceled: "text-red-400",
+};
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", {
@@ -92,9 +132,7 @@ onMounted(async () => {
     <!-- Stats -->
     <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
           À venir
         </p>
         <p class="mt-2 text-3xl font-black text-teal-400">
@@ -102,19 +140,15 @@ onMounted(async () => {
         </p>
       </div>
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          En attente
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
+          Payées
         </p>
-        <p class="mt-2 text-3xl font-black text-amber-400">
-          {{ loading ? "…" : stats.pending }}
+        <p class="mt-2 text-3xl font-black text-emerald-400">
+          {{ loading ? "…" : stats.paid }}
         </p>
       </div>
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
           Terminées
         </p>
         <p class="mt-2 text-3xl font-black text-slate-400">
@@ -122,9 +156,7 @@ onMounted(async () => {
         </p>
       </div>
       <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
+        <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">
           Total
         </p>
         <p class="mt-2 text-3xl font-black text-indigo-400">
@@ -176,44 +208,167 @@ onMounted(async () => {
       </NuxtLink>
     </div>
 
-    <!-- List -->
-    <div v-else class="grid gap-4">
-      <div
-        v-for="s in sessions"
-        :key="s.id"
-        class="rounded-3xl border border-white/5 bg-white/[0.02] p-6"
-      >
-        <div class="flex items-start justify-between gap-6">
-          <div class="space-y-1">
-            <p
-              class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500"
-            >
-              Session
-            </p>
-            <p class="text-lg font-black text-white">
-              {{ s.game || "Coaching" }}
-            </p>
-            <p class="text-sm text-slate-400">
-              {{ formatDateTime(s.start_at) }}
-              <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-            </p>
-          </div>
-
-          <div class="text-right">
-            <p
-              class="text-xs font-black uppercase tracking-widest text-slate-500"
-            >
-              Statut
-            </p>
-            <p class="mt-1 text-sm font-black text-teal-300">
-              {{ s.status }}
-            </p>
-            <p class="mt-2 text-lg font-black text-white">
-              {{ Number(s.price).toFixed(0) }}€
-            </p>
+    <!-- Sections -->
+    <div v-else class="space-y-10">
+      <!-- À venir -->
+      <section v-if="upcomingSessions.length">
+        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-teal-500">
+          À venir
+        </h2>
+        <div class="grid gap-4">
+          <div
+            v-for="s in upcomingSessions"
+            :key="s.id"
+            class="rounded-3xl border border-teal-500/10 bg-teal-500/[0.03] p-6"
+          >
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-1">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
+                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
+                <p class="text-sm text-slate-400">
+                  {{ formatDateTime(s.start_at) }}
+                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
+                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
+                  {{ statusLabel[s.status] ?? s.status }}
+                </p>
+                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- Payées -->
+      <section v-if="paidSessions.length">
+        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-emerald-500">
+          Payées
+        </h2>
+        <div class="grid gap-4">
+          <div
+            v-for="s in paidSessions"
+            :key="s.id"
+            class="rounded-3xl border border-emerald-500/10 bg-emerald-500/[0.03] p-6"
+          >
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-1">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
+                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
+                <p class="text-sm text-slate-400">
+                  {{ formatDateTime(s.start_at) }}
+                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
+                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
+                  {{ statusLabel[s.status] ?? s.status }}
+                </p>
+                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Annulées -->
+      <section v-if="canceledSessions.length">
+        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-red-500">
+          Annulées
+        </h2>
+        <div class="grid gap-4">
+          <div
+            v-for="s in canceledSessions"
+            :key="s.id"
+            class="rounded-3xl border border-red-500/10 bg-red-500/[0.03] p-6"
+          >
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-1">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
+                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
+                <p class="text-sm text-slate-400">
+                  {{ formatDateTime(s.start_at) }}
+                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
+                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
+                  {{ statusLabel[s.status] ?? s.status }}
+                </p>
+                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Terminées -->
+      <section v-if="doneSessions.length">
+        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-slate-500">
+          Terminées
+        </h2>
+        <div class="grid gap-4">
+          <div
+            v-for="s in doneSessions"
+            :key="s.id"
+            class="rounded-3xl border border-white/5 bg-white/[0.02] p-6"
+          >
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-1">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
+                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
+                <p class="text-sm text-slate-400">
+                  {{ formatDateTime(s.start_at) }}
+                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
+                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
+                  {{ statusLabel[s.status] ?? s.status }}
+                </p>
+                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- En cours (pending, negotiating, accepted, rejected…) -->
+      <section v-if="otherSessions.length">
+        <h2 class="mb-4 text-xs font-black uppercase tracking-[0.3em] text-amber-500">
+          En cours
+        </h2>
+        <div class="grid gap-4">
+          <div
+            v-for="s in otherSessions"
+            :key="s.id"
+            class="rounded-3xl border border-amber-500/10 bg-amber-500/[0.03] p-6"
+          >
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-1">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Session</p>
+                <p class="text-lg font-black text-white">{{ s.game || "Coaching" }}</p>
+                <p class="text-sm text-slate-400">
+                  {{ formatDateTime(s.start_at) }}
+                  <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-500">Statut</p>
+                <p class="mt-1 text-sm font-black" :class="statusColor[s.status] ?? 'text-slate-300'">
+                  {{ statusLabel[s.status] ?? s.status }}
+                </p>
+                <p class="mt-2 text-lg font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>

@@ -23,15 +23,24 @@ function randomBase64url(bytesLength: number): string {
 async function generateDbSessionActionToken(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   sessionId: string,
-  action: "confirm" | "cancel"
+  action: "confirm" | "cancel",
 ): Promise<string> {
   const plainToken = randomBase64url(32);
   const tokenHash = await sha256Hex(plainToken);
-  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await supabase.from("session_action_tokens").upsert(
-    { session_id: sessionId, action, token_hash: tokenHash, expires_at: expiresAt },
-    { onConflict: "session_id,action" }
-  );
+  const expiresAt = new Date(
+    Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { error } = await supabase
+    .from("session_action_tokens")
+    .upsert(
+      {
+        session_id: sessionId,
+        action,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+      },
+      { onConflict: "session_id,action" },
+    );
   if (error) throw new Error(error.message);
   return plainToken;
 }
@@ -59,20 +68,31 @@ function getEmailFrom(): string {
 
 /** URL de l'app pour les liens dans les emails. N'utilise jamais localhost (évite spam / avertissements Resend). */
 function getAppUrl(): string {
-  const raw = (Deno.env.get("CLIENT_URL") || Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+  const raw = (
+    Deno.env.get("CLIENT_URL") ||
+    Deno.env.get("PUBLIC_APP_URL") ||
+    ""
+  )
+    .trim()
+    .replace(/\/$/, "");
   if (raw && !raw.includes("localhost")) return raw;
-  const fallback = (Deno.env.get("PUBLIC_APP_URL") || "").trim().replace(/\/$/, "");
+  const fallback = (Deno.env.get("PUBLIC_APP_URL") || "")
+    .trim()
+    .replace(/\/$/, "");
   return fallback && !fallback.includes("localhost") ? fallback : "";
 }
 
 function buildSessionPayload(
   session: Record<string, unknown>,
   student: { full_name?: string | null; email?: string | null },
-  coach: { full_name?: string | null; email?: string | null }
+  coach: { full_name?: string | null; email?: string | null },
 ): Record<string, unknown> {
   const startAt = session.start_at as string | undefined;
   const formatted = startAt
-    ? new Date(startAt).toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+    ? new Date(startAt).toLocaleString("fr-FR", {
+        dateStyle: "full",
+        timeStyle: "short",
+      })
     : "";
   return {
     start_at: formatted,
@@ -113,7 +133,7 @@ function buildStudentPaidHtml(payload: Record<string, unknown>): string {
 function buildCoachPaidHtml(
   payload: Record<string, unknown>,
   confirmUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
 ): string {
   return `
     <h2>Nouvelle réservation</h2>
@@ -164,7 +184,10 @@ function buildCoachUpcomingHtml(payload: Record<string, unknown>): string {
   `;
 }
 
-function buildCanceledHtml(payload: Record<string, unknown>, isCoach: boolean): string {
+function buildCanceledHtml(
+  payload: Record<string, unknown>,
+  isCoach: boolean,
+): string {
   const who = isCoach
     ? "Une session avec un élève a été annulée."
     : "Votre session de coaching a été annulée.";
@@ -177,7 +200,9 @@ function buildCanceledHtml(payload: Record<string, unknown>, isCoach: boolean): 
 }
 
 /** Mail apprenti quand le coach annule (session non confirmée + remboursement) */
-function buildStudentCanceledByCoachHtml(payload: Record<string, unknown>): string {
+function buildStudentCanceledByCoachHtml(
+  payload: Record<string, unknown>,
+): string {
   return `
     <h2>Session non confirmée</h2>
     <p>Le coach n’a pas pu confirmer votre session prévue le ${payload.start_at} (${payload.game}).</p>
@@ -190,7 +215,7 @@ function buildStudentCanceledByCoachHtml(payload: Record<string, unknown>): stri
 async function sendResend(
   to: string,
   subject: string,
-  html: string
+  html: string,
 ): Promise<{ id?: string; error?: string }> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return { error: "RESEND_API_KEY manquante" };
@@ -224,10 +249,10 @@ serve(async (req: Request) => {
   const secret = req.headers.get("x-webhook-secret");
   const expected = Deno.env.get("EMAIL_WEBHOOK_SECRET");
   if (expected && secret !== expected) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -241,7 +266,9 @@ serve(async (req: Request) => {
 
     const { data: session, error: sessionError } = await supabase
       .from("sessions")
-      .select("id, coach_id, student_id, start_at, duration_minutes, game, price, currency")
+      .select(
+        "id, coach_id, student_id, start_at, duration_minutes, game, price, currency",
+      )
       .eq("id", session_id)
       .single();
 
@@ -276,9 +303,17 @@ serve(async (req: Request) => {
           .single();
         coachProfile = coachRow ?? {};
         if (!coachProfile?.email?.trim()) {
-          const { data: authUser } = await supabase.auth.admin.getUserById(pgr.profile_id);
+          const { data: authUser } = await supabase.auth.admin.getUserById(
+            pgr.profile_id,
+          );
           if (authUser?.user?.email) {
-            coachProfile = { ...coachProfile, email: authUser.user.email, full_name: coachProfile?.full_name ?? authUser.user.user_metadata?.full_name };
+            coachProfile = {
+              ...coachProfile,
+              email: authUser.user.email,
+              full_name:
+                coachProfile?.full_name ??
+                authUser.user.user_metadata?.full_name,
+            };
           }
         }
       }
@@ -289,14 +324,17 @@ serve(async (req: Request) => {
     if (!studentEmail && !coachEmail) {
       return new Response(
         JSON.stringify({ ok: true, message: "Aucun email à envoyer" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const payload = buildSessionPayload(
       session as Record<string, unknown>,
       student ?? {},
-      coachProfile
+      coachProfile,
     );
 
     const functionsBaseUrl = `${Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "")}/functions/v1`;
@@ -314,9 +352,17 @@ serve(async (req: Request) => {
       }
     }
 
-    const events: { event_type: string; to_email: string; subject: string; html: string }[] = [];
+    const events: {
+      event_type: string;
+      to_email: string;
+      subject: string;
+      html: string;
+    }[] = [];
 
-    if (new_status === "paid" || (new_status === "pending" && old_status !== "pending")) {
+    if (
+      new_status === "paid" ||
+      (new_status === "pending" && old_status !== "pending")
+    ) {
       if (studentEmail) {
         events.push({
           event_type: "session_paid_student",
@@ -340,7 +386,7 @@ serve(async (req: Request) => {
           html: buildCoachPaidHtml(
             payload,
             `${getAppUrl()}/dashboard/coach`,
-            `${getAppUrl()}/dashboard/coach`
+            `${getAppUrl()}/dashboard/coach`,
           ),
         });
       }
@@ -367,7 +413,9 @@ serve(async (req: Request) => {
         events.push({
           event_type: "session_canceled_student",
           to_email: studentEmail,
-          subject: canceledByCoach ? "Session non confirmée – Coach-me" : "Session annulée – Coach-me",
+          subject: canceledByCoach
+            ? "Session non confirmée – Coach-me"
+            : "Session annulée – Coach-me",
           html: canceledByCoach
             ? buildStudentCanceledByCoachHtml(payload)
             : buildCanceledHtml(payload, false),
@@ -391,7 +439,8 @@ serve(async (req: Request) => {
         payload: payload,
         provider: "resend",
       });
-      const isConflict = (insertErr as { code?: string } | null)?.code === "23505";
+      const isConflict =
+        (insertErr as { code?: string } | null)?.code === "23505";
       if (insertErr && !isConflict) {
         console.error("email_events insert", insertErr);
       }
@@ -410,10 +459,17 @@ serve(async (req: Request) => {
       const ev = eventMap.get(row.event_type);
       if (!ev) continue;
 
-      const { id: providerId, error: sendError } = await sendResend(row.to_email, ev.subject, ev.html);
+      const { id: providerId, error: sendError } = await sendResend(
+        row.to_email,
+        ev.subject,
+        ev.html,
+      );
 
       if (sendError) {
-        await supabase.from("email_events").update({ error: sendError }).eq("id", row.id);
+        await supabase
+          .from("email_events")
+          .update({ error: sendError })
+          .eq("id", row.id);
         continue;
       }
 
@@ -435,9 +491,9 @@ serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("send-session-emails", (err as Error).message);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -1,4 +1,12 @@
-export type AvailabilityStatus = "available" | "booked";
+export type AvailabilityStatus =
+  | "available"
+  | "upcoming"
+  | "booked"
+  | "confirmed"
+  | "canceled"
+  // rétro-compat
+  | "pending"
+  | "blocked";
 
 export interface Availability {
   id: string;

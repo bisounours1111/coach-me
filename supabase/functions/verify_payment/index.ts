@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { computeFeeAmountCents, getPlatformFeeBps, getStripe } from "../_shared/stripe.ts";
-import { getSupabaseAdmin } from "../_shared/supabase.ts";
+import { computeFeeAmountCents, getPlatformFeeBps, getStripe } from "./_shared/stripe.ts";
+import { getSupabaseAdmin } from "./_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,7 +142,8 @@ serve(async (req: Request) => {
 
     const { error: updateSlotError } = await supabaseAdmin
       .from("coach_availabilities")
-      .update({ status: "booked" })
+      // upcoming = en attente de confirmation coach
+      .update({ status: "upcoming" })
       .eq("id", slotId);
 
     if (updateSlotError) throw updateSlotError;

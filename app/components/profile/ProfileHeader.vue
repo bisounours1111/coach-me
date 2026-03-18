@@ -82,6 +82,9 @@ const copyProfileLink = () => {
 const { openWithCoach } = useMessagingPanel();
 
 const openMessagingWithCoach = () => {
+  if (!user.value) {
+    return navigateTo("/auth/login");
+  }
   openWithCoach(props.profile.id);
 };
 </script>
@@ -184,9 +187,9 @@ const openMessagingWithCoach = () => {
               >
                 Performances
               </h3>
-              <div class="flex gap-10">
+              <div class="flex flex-wrap gap-6 md:gap-10">
                 <div class="space-y-1">
-                  <div class="text-4xl font-black text-white">
+                  <div class="text-3xl md:text-4xl font-black text-white">
                     {{ coachGamesCount }}
                   </div>
                   <div
@@ -197,10 +200,10 @@ const openMessagingWithCoach = () => {
                 </div>
                 <div
                   v-if="minRate !== null"
-                  class="space-y-1 border-l border-white/10 pl-10"
+                  class="space-y-1 border-l border-white/10 pl-6 md:pl-10"
                 >
                   <div class="flex items-baseline gap-1">
-                    <span class="text-4xl font-black text-teal-400"
+                    <span class="text-3xl md:text-4xl font-black text-teal-400"
                       >{{ minRate }}€</span
                     >
                     <span class="text-xs font-bold text-slate-500">/h</span>
@@ -255,12 +258,12 @@ const openMessagingWithCoach = () => {
           </div>
 
           <!-- CTAs -->
-          <div class="mt-12 flex flex-wrap items-center justify-between gap-6">
-            <div class="flex gap-4">
+          <div class="mt-8 md:mt-12 flex flex-wrap items-center justify-between gap-6">
+            <div class="flex w-full sm:w-auto gap-4">
               <button
                 v-if="!isOwnProfileComputed && coachGamesCount > 0"
                 type="button"
-                class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"
+                class="flex w-full sm:w-auto cursor-pointer items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"
                 @click="openMessagingWithCoach"
               >
                 <UIcon
@@ -275,7 +278,7 @@ const openMessagingWithCoach = () => {
             <NuxtLink
               v-if="isOwnProfileComputed"
               to="/profile/edit"
-              class="flex items-center gap-3 rounded-2xl bg-indigo-500 px-8 py-4 text-sm font-black text-white shadow-xl shadow-indigo-900/20 transition-all hover:scale-105 hover:bg-indigo-400 active:scale-95"
+              class="flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl bg-indigo-500 px-8 py-4 text-sm font-black text-white shadow-xl shadow-indigo-900/20 transition-all hover:scale-105 hover:bg-indigo-400 active:scale-95"
             >
               <UIcon name="i-heroicons-pencil-square" class="h-5 w-5" />
               MODIFIER MON PROFIL

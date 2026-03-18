@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getSupabaseAdmin } from "../_shared/supabase.ts";
-import { generateSessionActionToken } from "../_shared/session_token.ts";
+import { getSupabaseAdmin } from "./_shared/supabase.ts";
+import { generateSessionActionToken } from "./_shared/session_token.ts";
 
 const TOKEN_EXPIRY_DAYS = 7;
 
@@ -87,7 +87,7 @@ function buildSessionPayload(
 }
 
 function htmlFooter(): string {
-  const privacyUrl = getAppUrl() ? `${getAppUrl()}/privacy` : "#";
+  const privacyUrl = getAppUrl() ? `${getAppUrl()}/legal/privacy` : "#";
   return `<p style="color:#888;font-size:12px;margin-top:24px;">Conformément au RGPD, vos données sont utilisées pour cette communication. <a href="${privacyUrl}">Politique de confidentialité</a>.</p>`;
 }
 
@@ -103,7 +103,7 @@ function buildStudentPaidHtml(payload: Record<string, unknown>): string {
       <li><strong>Tarif :</strong> ${payload.price} ${payload.currency}</li>
       <li><strong>Coach :</strong> ${payload.coach_name}</li>
     </ul>
-    <p><strong>Le coach te contactera le jour de ta session sur le chat de l’application.</strong></p>
+    <p><strong>Le coach vous contactera pour définir le moyen de communication pour la session de coaching.</strong></p>
     <p>Tu recevras un email de confirmation une fois que le coach aura accepté la session.</p>
     ${htmlFooter()}
   `;
@@ -146,7 +146,7 @@ function buildStudentUpcomingHtml(payload: Record<string, unknown>): string {
       <li><strong>Durée :</strong> ${payload.duration_minutes} min</li>
       <li><strong>Jeu :</strong> ${payload.game}</li>
     </ul>
-    <p><strong>Le coach te contactera le jour de la session sur le chat de l’application.</strong></p>
+    <p><strong>Le coach vous contactera pour définir le moyen de communication pour la session de coaching.</strong></p>
     ${htmlFooter()}
   `;
 }

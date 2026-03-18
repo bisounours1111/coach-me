@@ -9,63 +9,76 @@ useHead({
 });
 
 const user = useSupabaseUser();
-const supabase = useSupabaseClient<any>();
 const { getSessions } = useSessions();
 const { getCoachProfile } = useCoachProfile();
 
 const loading = ref(true);
-const error = ref<string | null>(null);
 const sessions = ref<any[]>([]);
 const profileName = ref<string | null>(null);
+const activeTab = ref<"upcoming" | "reservations" | "completed">("upcoming");
 
 const displayName = computed(() => {
   if (profileName.value) return profileName.value;
   if (!user.value) return "Joueur";
-
-  // Priorité au full_name dans les metadata de l'utilisateur si présent
   const metaName =
     user.value.user_metadata?.full_name || user.value.user_metadata?.name;
   if (metaName) return metaName;
-
   const email = user.value.email ?? "";
   return email.split("@")[0] || "Joueur";
 });
 
-const stats = computed(() => {
-  const all = sessions.value;
-  const upcoming = all.filter((s) => s.status === "upcoming").length;
-  const pending = all.filter((s) => s.status === "pending").length;
-  const done = all.filter((s) => s.status === "done").length;
-  return {
-    upcoming,
-    pending,
-    done,
-    total: all.length,
-  };
+const upcomingSessions = computed(() =>
+  sessions.value
+    .filter((s) => s.status === "upcoming")
+    .sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at))
+);
+
+const reservationSessions = computed(() =>
+  sessions.value
+    .filter((s) => s.status === "paid")
+    .sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at))
+);
+
+const completedSessions = computed(() =>
+  sessions.value
+    .filter((s) => s.status === "done")
+    .sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at))
+);
+
+const currentSessions = computed(() => {
+  if (activeTab.value === "upcoming") return upcomingSessions.value;
+  if (activeTab.value === "reservations") return reservationSessions.value;
+  if (activeTab.value === "completed") return completedSessions.value;
+  return [];
 });
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", {
-    weekday: "short",
+    weekday: "long",
     day: "2-digit",
-    month: "short",
+    month: "long",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
 
 onMounted(async () => {
-  loading.value = true;
-  error.value = null;
   try {
     if (user.value?.sub) {
       const profile = await getCoachProfile(user.value.sub);
       profileName.value = profile.fullName || null;
     }
     sessions.value = await getSessions("student");
-  } catch (e: any) {
+
+    if (upcomingSessions.value.length > 0) {
+      activeTab.value = "upcoming";
+    } else if (reservationSessions.value.length > 0) {
+      activeTab.value = "reservations";
+    } else if (completedSessions.value.length > 0) {
+      activeTab.value = "completed";
+    }
+  } catch (e) {
     console.error(e);
-    error.value =
-      e?.message || "Impossible de charger vos sessions pour le moment.";
   } finally {
     loading.value = false;
   }
@@ -74,149 +87,135 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-12">
-    <!-- Header -->
-    <header class="mb-10">
-      <p
-        class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80"
-      >
-        Espace élève
-      </p>
-      <h1 class="mt-2 text-3xl font-black text-white md:text-4xl">
-        Bienvenue, <span class="text-teal-400">{{ displayName }}</span>
-      </h1>
-      <p class="mt-2 text-sm text-slate-400">
-        Gère tes sessions de coaching et suis ta progression.
-      </p>
-    </header>
-
-    <!-- Stats -->
-    <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          À venir
+    <header class="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-teal-500/80">
+          Espace élève
         </p>
-        <p class="mt-2 text-3xl font-black text-teal-400">
-          {{ loading ? "…" : stats.upcoming }}
+        <h1 class="mt-2 text-3xl font-black text-white md:text-4xl">
+          Bienvenue, <span class="text-teal-400">{{ displayName }}</span>
+        </h1>
+        <p class="mt-2 text-sm text-slate-400">
+          Retrouvez l'historique et le planning de vos réservations.
         </p>
       </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          En attente
-        </p>
-        <p class="mt-2 text-3xl font-black text-amber-400">
-          {{ loading ? "…" : stats.pending }}
-        </p>
-      </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          Terminées
-        </p>
-        <p class="mt-2 text-3xl font-black text-slate-400">
-          {{ loading ? "…" : stats.done }}
-        </p>
-      </div>
-      <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-        <p
-          class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-        >
-          Total
-        </p>
-        <p class="mt-2 text-3xl font-black text-indigo-400">
-          {{ loading ? "…" : stats.total }}
-        </p>
-      </div>
-    </div>
-
-    <div
-      v-if="error"
-      class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6"
-    >
-      <p class="text-sm font-bold text-rose-300">{{ error }}</p>
-    </div>
-
-    <!-- Loading -->
-    <div v-else-if="loading" class="grid gap-4">
-      <div class="rounded-3xl border border-white/5 bg-white/[0.02] p-6">
-        <div class="flex items-center gap-3 text-slate-400">
-          <UIcon name="i-heroicons-arrow-path" class="h-5 w-5 animate-spin" />
-          Chargement de vos sessions…
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty state -->
-    <div
-      v-else-if="sessions.length === 0"
-      class="rounded-3xl border border-white/5 bg-white/[0.02] p-16 text-center"
-    >
-      <div
-        class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-500/10"
-      >
-        <UIcon name="i-heroicons-calendar-days" class="h-8 w-8 text-teal-400" />
-      </div>
-      <h2 class="text-xl font-black text-white">
-        Aucune session pour l'instant
-      </h2>
-      <p class="mx-auto mt-2 max-w-sm text-sm text-slate-500">
-        Trouve un coach et réserve ta première session pour commencer à
-        progresser.
-      </p>
       <NuxtLink
         to="/games"
-        class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
+        class="inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
       >
         Trouver un coach
         <UIcon name="i-heroicons-arrow-right" class="h-4 w-4" />
       </NuxtLink>
+    </header>
+
+    <div v-if="loading" class="flex justify-center py-20">
+      <div class="h-12 w-12 animate-spin rounded-full border-4 border-teal-500/20 border-t-teal-500" />
     </div>
 
-    <!-- List -->
-    <div v-else class="grid gap-4">
-      <div
-        v-for="s in sessions"
-        :key="s.id"
-        class="rounded-3xl border border-white/5 bg-white/[0.02] p-6"
-      >
-        <div class="flex items-start justify-between gap-6">
-          <div class="space-y-1">
-            <p
-              class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500"
-            >
-              Session
-            </p>
-            <p class="text-lg font-black text-white">
-              {{ s.game || "Coaching" }}
-            </p>
-            <p class="text-sm text-teal-400/90">
-              Coach : {{ s.coach_name ?? "—" }}
-            </p>
-            <p class="text-sm text-slate-400">
-              {{ formatDateTime(s.start_at) }}
-              <span v-if="s.end_at">→ {{ formatDateTime(s.end_at) }}</span>
-            </p>
-          </div>
+    <template v-else>
+      <!-- Tabs -->
+      <div class="mb-10 flex flex-wrap gap-3">
+        <button
+          @click="activeTab = 'upcoming'"
+          :disabled="upcomingSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'upcoming'
+            ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-calendar" class="h-4 w-4" />
+          À VENIR
+          <span class="ml-1 opacity-60">({{ upcomingSessions.length }})</span>
+        </button>
 
-          <div class="text-right">
-            <p
-              class="text-xs font-black uppercase tracking-widest text-slate-500"
-            >
-              Statut
-            </p>
-            <p class="mt-1 text-sm font-black text-teal-300">
-              {{ s.status }}
-            </p>
-            <p class="mt-2 text-lg font-black text-white">
-              {{ Number(s.price).toFixed(0) }}€
-            </p>
+        <button
+          @click="activeTab = 'reservations'"
+          :disabled="reservationSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'reservations'
+            ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-clock" class="h-4 w-4" />
+          RÉSERVATIONS
+          <span class="ml-1 opacity-60">({{ reservationSessions.length }})</span>
+        </button>
+
+        <button
+          @click="activeTab = 'completed'"
+          :disabled="completedSessions.length === 0"
+          class="flex items-center gap-2 rounded-2xl px-6 py-3 text-xs font-black tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          :class="activeTab === 'completed'
+            ? 'bg-slate-700 text-white shadow-lg shadow-slate-900/20'
+            : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+        >
+          <UIcon name="i-heroicons-check-circle" class="h-4 w-4" />
+          TERMINÉ
+          <span class="ml-1 opacity-60">({{ completedSessions.length }})</span>
+        </button>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="sessions.length === 0" class="rounded-3xl border border-white/5 bg-white/[0.02] p-20 text-center">
+        <UIcon name="i-heroicons-calendar" class="mx-auto h-16 w-16 text-slate-700" />
+        <h2 class="mt-6 text-xl font-bold text-white">Aucune session</h2>
+        <p class="mt-2 text-slate-500">Vous n'avez pas encore de réservations prévues.</p>
+        <NuxtLink
+          to="/games"
+          class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-95"
+        >
+          Trouver un coach
+          <UIcon name="i-heroicons-arrow-right" class="h-4 w-4" />
+        </NuxtLink>
+      </div>
+
+      <!-- Sessions list -->
+      <div v-else class="grid gap-6">
+        <div
+          v-for="s in currentSessions"
+          :key="s.id"
+          class="group relative overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition-all hover:border-white/10 hover:bg-white/[0.04]"
+          :class="{ 'opacity-70': activeTab === 'completed' }"
+        >
+          <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-6">
+              <div
+                class="flex h-14 w-14 items-center justify-center rounded-2xl"
+                :class="activeTab === 'completed' ? 'bg-white/5 text-slate-500' : 'bg-teal-500/10 text-teal-400'"
+              >
+                <UIcon
+                  :name="activeTab === 'completed' ? 'i-heroicons-check-circle' : 'i-heroicons-academic-cap'"
+                  class="h-8 w-8"
+                />
+              </div>
+              <div>
+                <h3 class="text-lg font-black text-white">{{ s.game || "Coaching" }}</h3>
+                <p class="text-sm text-slate-400">{{ formatDateTime(s.start_at) }}</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-xs font-bold text-slate-500">Coach :</span>
+                  <span class="text-xs font-black text-teal-400">{{ s.coach_name ?? "—" }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-right sm:mr-6">
+              <p v-if="s.status !== 'paid'" class="text-xs font-black uppercase tracking-widest text-slate-500">
+                {{ s.status }}
+              </p>
+              <p class="text-xl font-black text-white">{{ Number(s.price).toFixed(0) }}€</p>
+            </div>
           </div>
         </div>
+
+        <!-- Tab empty state -->
+        <div
+          v-if="currentSessions.length === 0"
+          class="rounded-3xl border border-white/5 bg-white/[0.02] p-16 text-center"
+        >
+          <UIcon name="i-heroicons-calendar" class="mx-auto h-12 w-12 text-slate-700" />
+          <p class="mt-4 text-slate-500">Aucune session dans cette catégorie.</p>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>

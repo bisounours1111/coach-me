@@ -1,0 +1,18 @@
+# Configuration Supabase - CoachMe
+# Voir https://supabase.com/docs/guides/functions/function-configuration
+
+# Désactive la vérification JWT au niveau du gateway pour ces fonctions.
+# L'authentification est gérée manuellement dans le code via getUserIdFromAuthHeader.
+# Nécessaire car la vérification native échoue parfois (clés ES256, etc.).
+[functions.get_wallet_balance]
+verify_jwt = false
+
+[functions.request_payout]
+verify_jwt = false
+
+[functions.create_connect_account]
+verify_jwt = false
+
+# session-action : appelé depuis les liens email (token one-time), pas de JWT utilisateur
+[functions.session-action]
+verify_jwt = false

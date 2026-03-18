@@ -8,6 +8,15 @@ export type SessionStatus =
   | "done"
   | "canceled";
 
+export type BookingSlotStatus =
+  | "available"
+  | "upcoming"
+  | "booked"
+  | "confirmed"
+  | "canceled"
+  | "pending"
+  | "blocked";
+
 export interface Session {
   id: string;
   coach_id: string;
@@ -16,6 +25,7 @@ export interface Session {
   end_at: string | null;
   duration_minutes: number;
   status: SessionStatus;
+  slot_id?: string | null;
   price: number;
   negotiated_price: number | null;
   currency: string;
@@ -105,12 +115,12 @@ export const useSessions = () => {
     const nameByProfileId = Object.fromEntries(
       (profiles as any[]).map((p) => [p.id, String(p.full_name ?? "").trim() || "Coach"]),
     );
-    const coachIdToProfileId = Object.fromEntries(
+    const coachIdToProfileId: Record<string, string | undefined> = Object.fromEntries(
       (coachings as any[]).map((c) => [c.id, pgrByPgrId[c.profile_game_role_id]]),
     );
     const coachNameByCoachId: Record<string, string> = {};
     for (const [cid, pid] of Object.entries(coachIdToProfileId)) {
-      if (pid) coachNameByCoachId[cid] = nameByProfileId[pid] ?? "Coach";
+      if (pid) coachNameByCoachId[cid] = nameByProfileId[String(pid)] ?? "Coach";
     }
 
     return sessions.map((s) => ({
@@ -147,7 +157,7 @@ export const useSessions = () => {
     if (role === "student") {
       const { data, error } = await client
         .from("sessions")
-        .select("*")
+        .select("*, coach_availabilities(status, start_at, end_at, coach_id)")
         .eq("student_id", authenticatedUserId)
         .order("start_at", { ascending: false });
 
@@ -162,7 +172,7 @@ export const useSessions = () => {
 
     const { data, error } = await client
       .from("sessions")
-      .select("*")
+      .select("*, coach_availabilities(status, start_at, end_at, coach_id)")
       .in("coach_id", coachingIds)
       .order("start_at", { ascending: false });
 
@@ -214,9 +224,22 @@ export const useSessions = () => {
     return data;
   };
 
+  const invokeSessionAction = async (
+    sessionId: string,
+    action: "confirm" | "cancel" | "validate",
+  ) => {
+    const { data, error } = await client.functions.invoke("session-action", {
+      body: { session_id: sessionId, action },
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
   return {
     getSessions,
     createSessionRequest,
     updateSessionStatus,
+    invokeSessionAction,
   };
 };

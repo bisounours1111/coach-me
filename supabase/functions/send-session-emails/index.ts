@@ -316,7 +316,7 @@ serve(async (req: Request) => {
 
     const events: { event_type: string; to_email: string; subject: string; html: string }[] = [];
 
-    if (new_status === "paid") {
+    if (new_status === "paid" || (new_status === "pending" && old_status !== "pending")) {
       if (studentEmail) {
         events.push({
           event_type: "session_paid_student",

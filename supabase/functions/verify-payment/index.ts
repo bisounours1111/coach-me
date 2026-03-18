@@ -98,6 +98,7 @@ serve(async (req) => {
           slot_id: finalSlotId,
           game: gameName,
           price: parseFloat(hourlyRate || "0"),
+          // Transaction validée (Stripe payé), mais réservation en attente côté créneau
           status: "paid",
           stripe_payment_status: session.payment_status,
           start_at: slot.start_at,
@@ -132,10 +133,10 @@ serve(async (req) => {
       }
     }
 
-    // 3. Marquer le créneau comme réservé
+    // 3. Marquer le créneau comme "upcoming" (en attente de confirmation du coach)
     const { error: updateSlotError } = await supabaseAdmin
       .from("coach_availabilities")
-      .update({ status: "booked" })
+      .update({ status: "upcoming" })
       .eq("id", slotId);
 
     if (updateSlotError) {

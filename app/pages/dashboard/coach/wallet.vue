@@ -269,7 +269,7 @@ onMounted(async () => {
         <button
           type="button"
           class="inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-500 px-6 py-3 text-xs font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="loading || balanceLoading"
+          :disabled="loading || balanceLoading || availableEurCents <= 0"
           @click="payout"
         >
           <UIcon name="i-heroicons-banknotes" class="h-4 w-4" />

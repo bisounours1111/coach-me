@@ -1,262 +1,329 @@
-# Schéma de Base de Données Supabase - CoachMe
+# Schema Supabase Coach
 
-Ce document décrit le schéma de base de données pour la plateforme CoachMe, implémenté dans Supabase (PostgreSQL).
+Ce document decrit le schema **actuel en production** de CoachMe, tel qu'observe sur Supabase (PostgreSQL + Auth + Storage + Edge Functions).
 
 ## Vue d'ensemble
 
-Le schéma est composé de 3 tables principales :
-- `profiles` : Profils utilisateurs étendus
-- `sessions` : Réservations de sessions de coaching
-- `reviews` : Avis des élèves sur les sessions
+Le schema public contient 15 tables:
 
-## Diagramme des relations
+- `profiles`
+- `games`
+- `game_ranks`
+- `profile_game_roles`
+- `coachings`
+- `coach_availabilities`
+- `sessions`
+- `reviews`
+- `conversations`
+- `messages`
+- `wallets`
+- `transactions`
+- `email_events`
+- `session_action_tokens`
+- `sessions_delete_audit`
 
-```
-auth.users (Supabase Auth)
-    │
-    └─── profiles (1:1)
-            │
-            ├─── sessions (1:N) [coach_id]
-            │       │
-            │       └─── reviews (1:1)
-            │
-            └─── sessions (1:N) [student_id]
-                    │
-                    └─── reviews (1:1)
-```
+## Diagramme des relations (simplifie)
 
-## Tables détaillées
-
-### Table `profiles`
-
-Table pour stocker les profils utilisateurs étendus au-delà de `auth.users`.
-
-#### Colonnes
-
-| Nom | Type | Description | Contraintes |
-|-----|------|-------------|-------------|
-| `id` | UUID | Identifiant unique (référence `auth.users.id`) | PRIMARY KEY, NOT NULL |
-| `email` | TEXT | Email de l'utilisateur | |
-| `full_name` | TEXT | Nom complet | |
-| `avatar_url` | TEXT | URL de l'avatar | |
-| `role` | TEXT | Rôle de l'utilisateur | DEFAULT 'student', CHECK IN ('student', 'coach', 'both') |
-| `is_coach` | BOOLEAN | Indique si l'utilisateur est coach | DEFAULT FALSE |
-| `coach_bio` | TEXT | Biographie du coach | |
-| `coach_games` | TEXT[] | Liste des jeux enseignés | |
-| `coach_ranks` | JSONB | Rangs par jeu (ex: `{"valorant": "Immortal"}`) | |
-| `coach_achievements` | TEXT[] | Liste des accomplissements | |
-| `coach_social_links` | JSONB | Liens réseaux sociaux (ex: `{"youtube": "url"}`) | |
-| `coach_video_urls` | TEXT[] | URLs vers vidéos de démonstration | |
-| `created_at` | TIMESTAMPTZ | Date de création | DEFAULT NOW() |
-| `updated_at` | TIMESTAMPTZ | Date de mise à jour | DEFAULT NOW() |
-
-#### Index
-
-- `idx_profiles_is_coach` sur `is_coach`
-- `idx_profiles_role` sur `role`
-
-#### Politiques RLS
-
-- **SELECT** : Tous les utilisateurs peuvent lire tous les profils (pour découvrir les coachs)
-- **UPDATE** : Les utilisateurs peuvent mettre à jour leur propre profil
-- **INSERT** : Les utilisateurs peuvent insérer leur propre profil
-
-#### Triggers
-
-- `on_auth_user_created` : Crée automatiquement un profil lors de l'inscription
-- `set_updated_at_profiles` : Met à jour `updated_at` automatiquement
-
----
-
-### Table `sessions`
-
-Table pour gérer les réservations de sessions de coaching.
-
-#### Colonnes
-
-| Nom | Type | Description | Contraintes |
-|-----|------|-------------|-------------|
-| `id` | UUID | Identifiant unique | PRIMARY KEY, DEFAULT gen_random_uuid() |
-| `coach_id` | UUID | Référence au profil du coach | NOT NULL, FOREIGN KEY → profiles(id) |
-| `student_id` | UUID | Référence au profil de l'élève | NOT NULL, FOREIGN KEY → profiles(id) |
-| `start_at` | TIMESTAMPTZ | Date et heure de début de la session | NOT NULL |
-| `end_at` | TIMESTAMPTZ | Date et heure de fin (optionnel) | |
-| `duration_minutes` | INTEGER | Durée en minutes | DEFAULT 60, CHECK > 0 |
-| `status` | TEXT | Statut de la session | DEFAULT 'pending', CHECK IN ('pending', 'paid', 'upcoming', 'done', 'canceled') |
-| `price` | NUMERIC(10,2) | Prix en unité de currency | NOT NULL, CHECK > 0 |
-| `currency` | TEXT | Devise | DEFAULT 'EUR' |
-| `stripe_session_id` | TEXT | ID de la session Stripe Checkout | UNIQUE |
-| `stripe_payment_intent_id` | TEXT | ID du paiement Stripe (pour suivi) | |
-| `stripe_payment_status` | TEXT | Statut du paiement Stripe | |
-| `student_notes` | TEXT | Notes de l'élève avant la session | |
-| `coach_notes` | TEXT | Notes du coach après la session | |
-| `game` | TEXT | Jeu concerné par la session | |
-| `created_at` | TIMESTAMPTZ | Date de création | DEFAULT NOW() |
-| `updated_at` | TIMESTAMPTZ | Date de mise à jour | DEFAULT NOW() |
-| `completed_at` | TIMESTAMPTZ | Date de complétion | |
-
-#### Index
-
-- `idx_sessions_coach_id` sur `coach_id`
-- `idx_sessions_student_id` sur `student_id`
-- `idx_sessions_status` sur `status`
-- `idx_sessions_start_at` sur `start_at`
-- `idx_sessions_stripe_payment_intent_id` sur `stripe_payment_intent_id`
-
-#### Contraintes
-
-- `check_coach_student_different` : Un élève ne peut pas réserver une session avec lui-même
-
-#### Triggers de validation
-
-- `check_coach_is_coach_trigger` : Vérifie que le coach a `is_coach = TRUE` (via la fonction `check_coach_is_coach()`)
-
-#### Politiques RLS
-
-- **SELECT** : Les coachs et élèves peuvent voir leurs propres sessions
-- **INSERT** : Les élèves peuvent créer des sessions (réserver)
-- **UPDATE** : Les coachs et élèves peuvent mettre à jour leurs propres sessions
-
-#### Triggers
-
-- `set_updated_at_sessions` : Met à jour `updated_at` automatiquement
-
----
-
-### Table `reviews`
-
-Table pour stocker les avis des élèves sur les sessions de coaching.
-
-#### Colonnes
-
-| Nom | Type | Description | Contraintes |
-|-----|------|-------------|-------------|
-| `id` | UUID | Identifiant unique | PRIMARY KEY, DEFAULT gen_random_uuid() |
-| `session_id` | UUID | Référence à la session | NOT NULL, UNIQUE, FOREIGN KEY → sessions(id) |
-| `coach_id` | UUID | Référence au profil du coach | NOT NULL, FOREIGN KEY → profiles(id) |
-| `student_id` | UUID | Référence au profil de l'élève | NOT NULL, FOREIGN KEY → profiles(id) |
-| `rating` | INTEGER | Note de 1 à 5 | NOT NULL, CHECK >= 1 AND <= 5 |
-| `comment` | TEXT | Commentaire de l'avis | |
-| `created_at` | TIMESTAMPTZ | Date de création | DEFAULT NOW() |
-| `updated_at` | TIMESTAMPTZ | Date de mise à jour | DEFAULT NOW() |
-
-#### Index
-
-- `idx_reviews_coach_id` sur `coach_id`
-- `idx_reviews_student_id` sur `student_id`
-- `idx_reviews_session_id` sur `session_id`
-- `idx_reviews_rating` sur `rating`
-
-#### Contraintes
-
-- `check_student_coach_different` : Un élève ne peut pas s'auto-évaluer
-
-#### Triggers de validation
-
-- `check_session_completed_trigger` : Vérifie qu'une session est complétée avant de créer un avis (via la fonction `check_session_completed()`)
-
-#### Politiques RLS
-
-- **SELECT** : Tous les utilisateurs peuvent lire les avis (pour voir la réputation des coachs)
-- **INSERT** : Les élèves peuvent créer des avis pour leurs propres sessions complétées
-- **UPDATE** : Les élèves peuvent mettre à jour leurs propres avis
-- **DELETE** : Les élèves peuvent supprimer leurs propres avis
-
-#### Triggers
-
-- `set_updated_at_reviews` : Met à jour `updated_at` automatiquement
-
-#### Fonctions utilitaires
-
-- `get_coach_average_rating(coach_uuid UUID)` : Calcule la note moyenne d'un coach
-- `get_coach_review_count(coach_uuid UUID)` : Compte le nombre d'avis d'un coach
-
----
-
-## Fonctions globales
-
-### `handle_updated_at()`
-
-Fonction trigger pour mettre à jour automatiquement le champ `updated_at` lors des modifications.
-
-### `handle_new_user()`
-
-Fonction trigger pour créer automatiquement un profil dans `profiles` lors de l'inscription d'un nouvel utilisateur dans `auth.users`.
-
----
-
-## Sécurité (RLS)
-
-Toutes les tables ont Row Level Security (RLS) activé avec des politiques spécifiques :
-
-1. **Profiles** : Lecture publique, modification uniquement de son propre profil
-2. **Sessions** : Accès limité au coach et à l'élève concernés
-3. **Reviews** : Lecture publique, création/modification uniquement par l'élève concerné
-
----
-
-## Migrations
-
-Les migrations sont stockées dans le dossier `supabase/migrations/` :
-
-1. `001_create_profiles_table.sql` : Création de la table profiles
-2. `002_create_sessions_table.sql` : Création de la table sessions
-3. `003_create_reviews_table.sql` : Création de la table reviews
-
-Pour appliquer les migrations, utilisez l'interface Supabase ou la CLI Supabase :
-
-```bash
-# Avec Supabase CLI
-supabase db push
-
-# Ou via l'interface Supabase Dashboard
-# SQL Editor > Coller le contenu de chaque migration
+```text
+auth.users
+   |
+   +--> public.profiles (1:1)
+            |
+            +--> profile_game_roles --> games
+            |          |
+            |          +--> coachings
+            |                    |
+            |                    +--> sessions <-- profiles (student_id)
+            |                               |
+            |                               +--> reviews
+            |
+            +--> coach_availabilities
+            |
+            +--> conversations --> messages
+            |
+            +--> wallets --> transactions
 ```
 
----
+## Tables (resume technique)
 
-## Notes importantes
+### `profiles`
 
-- Les profils sont créés automatiquement lors de l'inscription via le trigger `on_auth_user_created`
-- Un utilisateur peut être à la fois élève et coach (`role = 'both'`)
-- Les sessions nécessitent que le coach ait `is_coach = TRUE`
-- Les avis ne peuvent être créés que pour des sessions avec le statut `done`
-- Les prix sont stockés en NUMERIC(10,2) pour une précision décimale correcte
+Profil et role applicatif (`user` ou `maintainer`).
 
----
+Champs importants:
+- `id` (PK, FK vers `auth.users.id`)
+- `email`, `full_name`, `avatar_url`
+- `role` (CHECK: `user|maintainer`)
+- `bio`, `achievements`, `social_links`
+- `stripe_connect_id` (index unique partiel)
+- `created_at`, `updated_at`
 
-## Storage Bucket
+RLS:
+- lecture publique
+- insert/update uniquement sur son propre profil
 
-### Bucket `coach-videos`
-
-Bucket Supabase Storage pour stocker les vidéos de démonstration des coachs.
-
-#### Configuration
-
-- **Nom** : `coach-videos`
-- **Public** : Oui (lecture publique pour permettre l'accès aux vidéos)
-- **Limite de taille par fichier** : 100 MB (104857600 bytes)
-- **Types MIME autorisés** :
-  - `video/mp4`
-  - `video/webm`
-  - `video/quicktime`
-  - `video/x-msvideo` (.avi)
-
-#### Politiques RLS
-
-- **SELECT** : Tout le monde peut lire les vidéos (bucket public)
-- **INSERT** : Seuls les coachs authentifiés peuvent uploader leurs vidéos
-- **UPDATE** : Seuls les coachs peuvent mettre à jour leurs propres vidéos
-- **DELETE** : Seuls les coachs peuvent supprimer leurs propres vidéos
-
-#### Note importante
-
-Comme mentionné dans le README, le bucket a une limitation de stockage. Pour les vidéos plus volumineuses, il est recommandé d'utiliser des liens externes (YouTube, Vimeo, etc.) stockés dans le champ `coach_video_urls` de la table `profiles`.
-
-#### Utilisation
-
-Les vidéos doivent être organisées par `user_id` dans le path. Exemple :
-- `{user_id}/video1.mp4`
-- `{user_id}/video2.webm`
+Triggers:
+- `on_auth_user_created`
+- `set_updated_at_profiles`
 
 ---
+
+### `games` / `game_ranks`
+
+Catalogue des jeux + rangs configurables par jeu.
+
+`games`:
+- `id`, `slug` (unique), `name`, `icon_url`, timestamps
+
+`game_ranks`:
+- `id`, `game_id` (FK), `label`, `sort_order`, `icon_url`, timestamps
+- contrainte d'unicite `(game_id, label)`
+
+RLS:
+- lecture publique
+- gestion maintainer
+
+---
+
+### `profile_game_roles`
+
+Association profil <-> jeu avec role coach.
+
+Champs:
+- `id`
+- `profile_id` (FK `profiles`)
+- `game_id` (FK `games`)
+- `is_coach` (bool)
+- `player_rank_id` (FK compose vers `game_ranks(id, game_id)`)
+- timestamps
+
+Contraintes:
+- unique `(profile_id, game_id)`
+
+RLS:
+- lecture publique
+- gestion de ses propres lignes
+
+---
+
+### `coachings`
+
+Offres de coaching publiees par jeu/rang.
+
+Champs:
+- `id`
+- `profile_game_role_id` (FK)
+- `description`, `video_urls`, `hourly_rate`, `is_active`
+- timestamps
+
+RLS:
+- lecture publique
+- gestion de ses propres coachings
+
+Trigger:
+- `set_updated_at_coachings`
+- `protect_coachings_from_delete_trigger` (interdit suppression si sessions liees)
+
+---
+
+### `coach_availabilities`
+
+Creneaux de disponibilite des coachs.
+
+Champs:
+- `id`
+- `coach_id` (FK `profiles`)
+- `start_at`, `end_at`
+- `status` (`available|upcoming|booked|confirmed|canceled|pending|blocked`)
+- `is_active`
+- timestamps
+
+RLS:
+- lecture publique
+- insert/update/delete pour le coach proprietaire
+
+Triggers:
+- `set_updated_at_availabilities`
+- `protect_booked_availabilities_trigger` (protege les slots `booked`)
+- `trg_propagate_slot_status_to_session` (sync vers `sessions`)
+
+---
+
+### `sessions`
+
+Reservations et flux transactionnel.
+
+Champs:
+- `id`
+- `coach_id` (FK `coachings`)
+- `student_id` (FK `profiles`)
+- `slot_id` (FK `coach_availabilities`, nullable)
+- `start_at`, `end_at`, `duration_minutes`
+- `status` (`pending|negotiating|accepted|rejected|paid|upcoming|done|canceled`)
+- `price`, `negotiated_price`, `currency`
+- `stripe_session_id` (unique)
+- `stripe_payment_intent_id` (unique)
+- `stripe_payment_status`
+- `student_notes`, `coach_notes`, `game`
+- `completed_at`, timestamps
+
+Contraintes:
+- `check_coach_student_different`
+
+RLS:
+- select/update cote coach et eleve concernes
+- insert cote eleve
+
+Triggers:
+- `set_updated_at_sessions`
+- `on_session_status_send_emails`
+- `trg_sync_session_status_from_slot`
+- `audit_sessions_delete_trigger`
+
+---
+
+### `reviews`
+
+Avis eleve sur session terminee.
+
+Champs:
+- `id`
+- `session_id` (FK unique vers `sessions`)
+- `coach_id` (FK `coachings`)
+- `student_id` (FK `profiles`)
+- `rating`, `comment`, timestamps
+
+RLS:
+- lecture publique
+- create/update/delete par l'eleve proprietaire
+
+Triggers/Fonctions:
+- `check_session_completed_trigger`
+- `set_updated_at_reviews`
+- `get_coach_average_rating`
+- `get_coach_review_count`
+
+---
+
+### `conversations` / `messages`
+
+Messagerie eleve-coach.
+
+`conversations`:
+- `student_id`, `coach_id`
+- colonnes generees: `user_low_id`, `user_high_id`
+- unicite de paire (quel que soit l'ordre)
+
+`messages`:
+- `conversation_id`, `sender_id`, `content`, `read_at`, `created_at`
+
+RLS:
+- participants uniquement
+
+Triggers:
+- `set_updated_at_conversations`
+- `on_message_created_update_conversation`
+
+Realtime:
+- `public.messages` ajoutee a la publication `supabase_realtime`
+
+---
+
+### `wallets` / `transactions`
+
+Suivi financier interne (Stripe Connect).
+
+`wallets`:
+- 1 wallet par profil (`profile_id` unique)
+- `currency`, timestamps
+
+`transactions`:
+- `wallet_id`, `profile_id`, `session_id`
+- `type` (`credit|payout`)
+- `status` (`pending|succeeded|failed`)
+- `amount`, `fee`, `currency`, `stripe_id`, `created_at`
+
+RLS:
+- lecture utilisateur sur ses donnees
+- ecriture transactionnelle reservee backend/service role
+
+---
+
+### `email_events` / `session_action_tokens`
+
+Infra email (Resend + actions one-time).
+
+`email_events`:
+- audit/idempotence d'envoi
+- `session_id`, `event_type`, `to_email`, `payload`, `provider`, `provider_id`, `sent_at`, `error`
+
+`session_action_tokens`:
+- PK composee `(session_id, action)`
+- hash token one-time avec expiration/consommation
+
+RLS:
+- actives, sans policies publiques (acces backend/service role)
+
+---
+
+### `sessions_delete_audit`
+
+Journal d'audit des suppressions de sessions.
+
+Champs:
+- `id`, `deleted_at`, `deleted_by`, `db_user`, `old_row`
+
+RLS:
+- policy de lecture pour les mainteneurs uniquement
+
+Fonction/Trigger:
+- `audit_sessions_delete()`
+- `audit_sessions_delete_trigger` (`BEFORE DELETE ON sessions`)
+
+## Fonctions publiques presentes en prod
+
+- `handle_updated_at`
+- `handle_new_user`
+- `check_session_completed`
+- `set_conversation_updated_at_on_message`
+- `trigger_send_session_emails`
+- `purge_old_messages`
+- `confirm_past_bookings`
+- `map_slot_status_to_session_status`
+- `sync_session_status_from_slot`
+- `propagate_slot_status_to_session`
+- `prevent_booked_availability_mutations`
+- `prevent_coaching_delete_when_sessions_exist`
+- `audit_sessions_delete`
+- `get_coach_average_rating`
+- `get_coach_review_count`
+
+## Extensions actives (prod)
+
+- `pg_cron`
+- `pg_net`
+- `pgcrypto`
+- `pg_graphql`
+- `pg_stat_statements`
+- `supabase_vault`
+- `uuid-ossp`
+- `plpgsql`
+
+## Storage buckets utilises
+
+- `coach-videos` (videos coach)
+- `avatars` (photos de profil)
+- `rank` (icones de rangs)
+- `game-icons` (icones jeux)
+
+Politiques storage notables:
+- lecture publique des assets
+- ecriture conditionnee (coach owner, utilisateur owner, maintainer)
+
+## Migration de reference
+
+Le schema est rejouable via:
+
+- `supabase/migrations/000_full_schema.sql`
+
+Ce fichier est maintenu pour reproduire l'etat de production au plus proche.

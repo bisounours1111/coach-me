@@ -98,13 +98,10 @@ BEGIN
 END;
 $$;
 
--- Trigger sur sessions (AFTER UPDATE, quand status change vers paid/upcoming/canceled)
+-- Trigger sur sessions (INSERT/UPDATE quand status devient paid/upcoming/canceled)
 DROP TRIGGER IF EXISTS on_session_status_send_emails ON public.sessions;
 CREATE TRIGGER on_session_status_send_emails
-  AFTER UPDATE OF status ON public.sessions
+  AFTER INSERT OR UPDATE OF status ON public.sessions
   FOR EACH ROW
-  WHEN (
-    OLD.status IS DISTINCT FROM NEW.status
-    AND NEW.status IN ('paid', 'upcoming', 'canceled')
-  )
+  WHEN (NEW.status IN ('paid', 'upcoming', 'canceled'))
   EXECUTE FUNCTION public.trigger_send_session_emails();

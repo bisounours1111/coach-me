@@ -255,12 +255,12 @@ serve(async (req: Request) => {
   };
 
   if (payload.action === "confirm") {
-    if (session.status !== "paid" && session.status !== "pending") {
+    if (session.status !== "paid" && session.status !== "pending" && session.status !== "upcoming") {
       return respond(
         200,
         false,
         "Cette session n'est plus en attente de confirmation.",
-        session.status === "upcoming" ? "confirmed" : "error",
+        "error",
       );
     }
 

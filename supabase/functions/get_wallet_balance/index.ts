@@ -63,7 +63,9 @@ serve(async (req: Request) => {
     if (error) throw new Error("Impossible de lire les transactions");
 
     // Récupérer les statuts des sessions séparément (plus fiable que la jointure PostgREST)
-    const sessionIds = [...new Set((txData ?? []).map((t: any) => t.session_id).filter(Boolean))];
+    const sessionIds = [
+      ...new Set((txData ?? []).map((t: any) => t.session_id).filter(Boolean)),
+    ];
     const sessionStatusMap: Record<string, string> = {};
     if (sessionIds.length > 0) {
       const { data: sessions } = await supabaseAdmin
@@ -71,7 +73,9 @@ serve(async (req: Request) => {
         .select("id, status")
         .in("id", sessionIds);
       for (const s of sessions ?? []) {
-        sessionStatusMap[String((s as any).id)] = String((s as any).status || "");
+        sessionStatusMap[String((s as any).id)] = String(
+          (s as any).status || "",
+        );
       }
     }
 
@@ -86,7 +90,7 @@ serve(async (req: Request) => {
       const cents = toCents((t as any).amount);
       const stripeId = String((t as any).stripe_id || "");
       const sessionStatus = (t as any).session_id
-        ? sessionStatusMap[String((t as any).session_id)] ?? ""
+        ? (sessionStatusMap[String((t as any).session_id)] ?? "")
         : "";
 
       if (type === "credit" && status === "succeeded") {
@@ -132,8 +136,10 @@ serve(async (req: Request) => {
     if (profile?.stripe_connect_id) {
       try {
         const stripe = getStripe();
-        const account = await stripe.accounts.retrieve(String(profile.stripe_connect_id));
-        stripeActive = account.details_submitted && account.charges_enabled;
+        const account = await stripe.accounts.retrieve(
+          String(profile.stripe_connect_id),
+        );
+        stripeActive = account.details_submitted;
       } catch (e) {
         console.error("Erreur lors de la récupération du compte Stripe:", e);
       }

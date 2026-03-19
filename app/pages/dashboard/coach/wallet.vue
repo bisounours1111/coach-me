@@ -116,7 +116,7 @@ const startOnboarding = async () => {
   try {
     const { data, error: fnError } = await invokeAuthed<any>(
       "create_connect_account",
-      {},
+      { return_url: window.location.href },
     );
     if (fnError) throw fnError;
     const url = data?.url;
@@ -238,20 +238,18 @@ onMounted(async () => {
           <p
             class="text-[10px] font-black uppercase tracking-wider text-slate-500"
           >
-            Retrait en attente
+            Déjà retiré
           </p>
-          <p class="mt-2 text-4xl font-black text-slate-200">
-            {{
-              balanceLoading ? "…" : eur(walletBalance?.pendingPayoutCents ?? 0)
-            }}
+          <p class="mt-2 text-4xl font-black text-white">
+            {{ balanceLoading ? "…" : eur(walletBalance?.withdrawnCents ?? 0) }}
           </p>
           <p class="mt-2 text-xs text-slate-400">
-            Montant demandé en cash-out mais pas encore confirmé.
+            Total des retraits (confirmés et en cours).
           </p>
         </div>
       </section>
 
-      <section class="mt-4 grid gap-4 md:grid-cols-2">
+      <section class="mt-4 grid gap-4 md:grid-cols-1">
         <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
           <p
             class="text-[10px] font-black uppercase tracking-wider text-slate-500"
@@ -263,20 +261,6 @@ onMounted(async () => {
           </p>
           <p class="mt-2 text-xs text-slate-400">
             Total gagné (crédits validés).
-          </p>
-        </div>
-
-        <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-          <p
-            class="text-[10px] font-black uppercase tracking-wider text-slate-500"
-          >
-            Déjà retiré
-          </p>
-          <p class="mt-2 text-3xl font-black text-white">
-            {{ balanceLoading ? "…" : eur(walletBalance?.withdrawnCents ?? 0) }}
-          </p>
-          <p class="mt-2 text-xs text-slate-400">
-            Total des retraits confirmés.
           </p>
         </div>
       </section>

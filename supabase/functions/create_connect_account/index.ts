@@ -51,6 +51,8 @@ serve(async (req: Request) => {
 
     if (profileError || !profile) throw new Error("Profil introuvable");
 
+    const { return_url } = await req.json().catch(() => ({}));
+
     let connectId = profile.stripe_connect_id ? String(profile.stripe_connect_id) : null;
 
     if (!connectId) {
@@ -72,13 +74,13 @@ serve(async (req: Request) => {
       if (updateError) throw new Error("Impossible de sauvegarder stripe_connect_id");
     }
 
-    const refreshUrl = getUrl("STRIPE_CONNECT_REFRESH_URL", `${clientUrl}/dashboard/coach/wallet?onboarding=refresh`);
-    const returnUrl = getUrl("STRIPE_CONNECT_RETURN_URL", `${clientUrl}/dashboard/coach/wallet?onboarding=success`);
+    const refreshUrl = getUrl("STRIPE_CONNECT_REFRESH_URL", return_url || `${clientUrl}/dashboard/coach/wallet?onboarding=refresh`);
+    const finalReturnUrl = getUrl("STRIPE_CONNECT_RETURN_URL", return_url || `${clientUrl}/dashboard/coach/wallet?onboarding=success`);
 
     const accountLink = await stripe.accountLinks.create({
       account: connectId,
       refresh_url: refreshUrl,
-      return_url: returnUrl,
+      return_url: finalReturnUrl,
       type: "account_onboarding",
     });
 

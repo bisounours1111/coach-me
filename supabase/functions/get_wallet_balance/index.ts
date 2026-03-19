@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getStripe } from "./_shared/stripe.ts";
 import {
   getSupabaseAdmin,
   getUserIdFromAuthHeader,
@@ -117,21 +118,37 @@ serve(async (req: Request) => {
       earnedCents - withdrawnCents - pendingPayoutCents - refundCents,
     );
 
+    // Simplification demandée par l'utilisateur : Tout retrait réussi est considéré comme "Déjà retiré"
+    // et on ne veut plus de la catégorie "En attente" dans le calcul final si on veut simplifier l'UI.
+    // Mais ici on garde la logique de calcul, on va juste adapter ce qu'on renvoie.
+
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("stripe_connect_id")
       .eq("id", userId)
       .single();
 
+    let stripeActive = false;
+    if (profile?.stripe_connect_id) {
+      try {
+        const stripe = getStripe();
+        const account = await stripe.accounts.retrieve(String(profile.stripe_connect_id));
+        stripeActive = account.details_submitted && account.charges_enabled;
+      } catch (e) {
+        console.error("Erreur lors de la récupération du compte Stripe:", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         walletId,
         currency: "EUR",
         earnedCents,
-        withdrawnCents,
-        pendingPayoutCents,
+        withdrawnCents: withdrawnCents + pendingPayoutCents, // On fusionne les deux pour l'UI
+        pendingPayoutCents: 0, // On met à 0 car l'utilisateur veut supprimer cette catégorie
         availableCents,
         stripeConnectId: profile?.stripe_connect_id || null,
+        stripeActive,
       }),
       {
         status: 200,

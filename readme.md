@@ -1,81 +1,205 @@
 # CoachMe
 
-**CoachMe** est une plateforme SaaS de mise en relation entre joueurs passionnés et coachs. L'application permet aux utilisateurs de progresser sur leurs jeux favoris grâce à un accompagnement personnalisé, tout en offrant aux coachs une infrastructure pour monétiser leur expertise.
+CoachMe est une plateforme SaaS de coaching gaming qui met en relation des eleves et des coachs verifies, avec reservation de creneaux, paiement Stripe, suivi de transactions et systeme d'emails transactionnels.
 
----
+Reference repository: [bisounours1111/coach-me](https://github.com/bisounours1111/coach-me)
 
-## Le Concept
+## 1) Concept du projet
 
-- **Problème identifié :** L'écart de niveau croissant dans les jeux compétitifs et le manque de structures fiables pour trouver des mentors dont le niveau est vérifié.
-- **Solution :** Une plateforme "tout-en-un" où les coachs créent un portfolio détaillé (résultats, vidéos, spécialités) et où les élèves peuvent réserver et payer leurs sessions en toute sécurité.
-- **Audience cible :** Joueurs compétitifs (Amateurs à Semi-Pro) et créateurs de contenu souhaitant monétiser leur savoir-faire.
-- **Modèle de monétisation :** Système de commission sur les sessions payantes gérées via **Stripe**.
+- **Probleme**: difficulte a trouver des coachs fiables et specialises par jeu/rang.
+- **Solution**: marketplace verticale avec profils, offres de coaching, disponibilites, messagerie, paiement et suivi.
+- **Cible**: joueurs competitifs (amateur a semi-pro), coachs/creators souhaitant monetiser leur expertise.
+- **Monetisation**: commissions sur sessions payantes via Stripe.
 
----
+## 2) Contraintes techniques
 
-## Contraintes Techniques
+- **Frontend**: Nuxt 4 + Vue 3.
+- **Backend / BDD**: Supabase (PostgreSQL, Auth, Storage, RLS, Edge Functions).
+- **Paiement**: Stripe Checkout + Stripe Connect.
+- **Email transactionnel**: Resend via Edge Function `send-session-emails`.
+- **Securite data**: RLS active sur les tables metier.
 
-- **Frontend :** **Nuxt** pour une interface fluide, optimisée pour le SEO et le rendu hybride (SSR/SPA).
-- **Backend & Base de données :** **Supabase** (PostgreSQL) pour la gestion des données en temps réel et l'authentification sécurisée.
-- **API Externe (Paiement) :** **Stripe API** pour la facturation et le versement des gains aux coachs.
+## 3) Fonctionnalites principales
 
----
+- **Authentification**: inscription, connexion, reset password.
+- **Profils**: fiche publique, informations coach, jeux/rangs, medias.
+- **Offres de coaching**: modeles par jeu, tarif horaire, activation/desactivation.
+- **Disponibilites**: gestion des slots coach et statuts de reservation.
+- **Reservation**: creation de session, negotiation/prix, statut lifecycle.
+- **Paiement**: checkout Stripe, suivi paiement, wallet/transactions.
+- **Messagerie**: conversation eleve-coach + historique messages + realtime.
+- **Emails**: notifications de statuts et actions de session (confirm/annuler).
 
-## Fonctionnalités Clés
+## 4) UML (modele de donnees simplifie)
 
-### 👤 Gestion des Utilisateurs
-
-- **Espace Utilisateur complet :** Inscription et connexion sécurisées via Supabase Auth.
-- **Rôles hybrides :** Possibilité d'être à la fois élève et coach avec un basculement de profil fluide.
-
-### 👔 Portfolio du Coach
-
-- **Présentation libre :** Le coach renseigne ses jeux, ses rangs, ses accomplissements et ajoute des liens vers ses vidéos ou ses réseaux sociaux (Ajout d'upload de vidéo pour simplifier, mais bucket sûrement trop faible en stockage).
-- **Système de Feedback :** Les avis des élèves après chaque session garantissent la réputation du coach.
-
-### 📅 Sessions & Paiement
-
-- **Réservation :** Calendrier de disponibilités pour planifier les sessions de coaching.
-- **Paiement sécurisé :** Intégration de Stripe pour garantir la rémunération et la protection des données financières.
-
----
-
-## 📂 Livrables Techniques
-
-- **Application fonctionnelle :** Déployée et accessible en ligne.
-- **Documentation complète :**
-- **Guide d'installation :** Procédure de lancement local (disponible dans `/docs/INSTALL.md`).
-- **Application Architecture Diagram :** Flux de données entre Nuxt, Supabase et les APIs externes.
-- **Modèle de données :** Schéma UML des tables SQL (Profiles, Sessions, Payments).
-- **Infrastructure Architecture Diagram :** Schéma du déploiement cloud.
-
----
-
-## 🔧 Installation rapide
-
-```bash
-# 1. Cloner le repository
-git clone https://github.com/votre-compte/coach-me.git
-
-# 2. Installer les dépendances
-npm install
-
-# 3. Configurer le .env (Supabase URL/Key, Stripe Key)
-cp .env.example .env
-
-# 4. Lancer le projet en développement
-npm run dev
-
-# 5. Build pour la production
-npm run build
+```mermaid
+erDiagram
+  profiles ||--o{ profile_game_roles : has
+  games ||--o{ profile_game_roles : classify
+  profile_game_roles ||--o{ coachings : offers
+  profiles ||--o{ sessions : "student_id"
+  coachings ||--o{ sessions : "coach_id"
+  sessions ||--o| reviews : receives
+  profiles ||--o{ coach_availabilities : owns
+  sessions }o--|| coach_availabilities : "slot_id"
+  profiles ||--o{ conversations : "student/coach"
+  conversations ||--o{ messages : contains
+  profiles ||--o| wallets : owns
+  wallets ||--o{ transactions : contains
 ```
 
-### Commandes disponibles
+## 5) Diagramme d'architecture applicative
+
+```mermaid
+flowchart LR
+  U[Utilisateur] --> N[Nuxt App]
+  N --> SA[Supabase Auth]
+  N --> DB[(Supabase Postgres)]
+  N --> ST[Supabase Storage]
+  N --> EF[Supabase Edge Functions]
+  EF --> STRIPE[Stripe API]
+  EF --> RESEND[Resend API]
+  DB --> TRG[DB Triggers]
+  TRG --> EF
+```
+
+## 6) Diagramme d'infrastructure
+
+```mermaid
+flowchart TD
+  Browser --> Vercel[Vercel / Nuxt Runtime]
+  Vercel --> SupabaseProject[Supabase Project]
+  SupabaseProject --> Postgres[(Postgres)]
+  SupabaseProject --> Storage[(Storage Buckets)]
+  SupabaseProject --> Edge[Edge Functions]
+  Edge --> Stripe
+  Edge --> Resend
+```
+
+## 7) Livrables
+
+- Application web Nuxt fonctionnelle.
+- Schema SQL consolidé dans `supabase/migrations/000_full_schema.sql`.
+- Fonctions Edge pour checkout, paiements, payouts, emails, session actions.
+- Documentation technique dans `docs/` et `supabase/README.md`.
+
+## 8) Guide d'installation complet (local)
+
+### 8.1 Prerequis
+
+- Node.js 20+ (recommande: LTS recente)
+- npm 10+
+- Un projet Supabase actif
+- Un compte Stripe (cles test)
+- Un compte Resend (cle API + domaine expediteur verifie)
+
+### 8.2 Cloner et installer
+
+```bash
+git clone https://github.com/bisounours1111/coach-me.git
+cd coach-me
+npm install
+```
+
+### 8.3 Variables d'environnement Nuxt (`.env` a la racine)
+
+Creer un fichier `.env` a la racine avec:
+
+```env
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SECRET_KEY=<service-role-key-ou-secret>
+SUPABASE_DB_URL=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+CLIENT_URL=http://localhost:3000
+
+STRIPE_SECRET_KEY=<stripe-secret-key>
+RESEND_API_KEY=<resend-api-key>
+EMAIL_FROM=Coach-me <no-reply@votre-domaine.com>
+EMAIL_WEBHOOK_SECRET=<secret-partage>
+SESSION_ACTION_SECRET=<meme-valeur-que-EMAIL_WEBHOOK_SECRET>
+PUBLIC_APP_URL=http://localhost:3000
+```
+
+Notes:
+- `SUPABASE_SECRET_KEY` est utilise par le module Nuxt Supabase (`nuxt.config.ts`) et certaines fonctions Edge attendent `SUPABASE_SERVICE_ROLE_KEY` (ou fallback `SUPABASE_SECRET_KEY`).
+- Pour la coherence, renseigner aussi `SUPABASE_SERVICE_ROLE_KEY` dans les secrets Edge (voir section suivante).
+
+### 8.4 Secrets Supabase Edge Functions
+
+Configurer dans **Supabase Dashboard -> Project Settings -> Edge Functions -> Secrets**:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `STRIPE_SECRET_KEY`
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+- `EMAIL_WEBHOOK_SECRET`
+- `SESSION_ACTION_SECRET` (meme valeur que `EMAIL_WEBHOOK_SECRET`)
+- `CLIENT_URL` (ou `PUBLIC_APP_URL`)
+
+### 8.5 Base de donnees Supabase
+
+Le projet utilise un fichier SQL unique:
+
+- `supabase/migrations/000_full_schema.sql`
+
+Execution:
+1. Ouvrir Supabase SQL Editor.
+2. Coller/executer tout le contenu de `000_full_schema.sql`.
+3. Verifier ensuite:
+   - tables metier (`profiles`, `games`, `profile_game_roles`, `coachings`, `sessions`, `reviews`, etc.)
+   - tables paiement (`wallets`, `transactions`)
+   - messagerie (`conversations`, `messages`)
+   - email (`email_events`, `session_action_tokens`)
+   - buckets (`coach-videos`, `avatars`, `rank`, `game-icons`)
+
+### 8.6 Configuration Auth Supabase (obligatoire)
+
+Dans **Authentication -> URL Configuration**:
+
+- **Site URL**:
+  - local: `http://localhost:3000`
+  - prod: URL de deploiement (ex: `https://coach-me-nine.vercel.app`)
+- **Redirect URLs**:
+  - `http://localhost:3000/auth/reset`
+  - `<url-prod>/auth/reset`
+
+### 8.7 Lancer le projet
+
+```bash
+npm run dev
+```
+
+Application locale: `http://localhost:3000`
+
+### 8.8 Build / preview
+
+```bash
+npm run build
+npm run preview
+```
+
+## 9) Structure des dossiers Nuxt
+
+- `app/components`: composants UI reutilisables (cards, formulaires, widgets, etc.).
+- `app/composables`: logique metier reactive partagee (`useAuth`, `useSessions`, `useMessaging`, etc.).
+- `app/layouts`: structures globales de pages (`default`, `auth`).
+- `app/pages`: routes Nuxt file-based (auth, dashboard, profile, booking, etc.).
+- `app/middleware`: guards de navigation (auth, role, onboarding, coach-only).
+- `app/plugins`: plugins Vue/Nuxt (ex: `v-calendar`).
+- `app/types`: typages TypeScript metier.
+- `app/utils`: utilitaires transverses (navigation, validation, etc.).
+- `app/assets`: styles et ressources statiques transformees au build.
+- `public`: assets statiques servis tels quels.
+- `supabase`: migrations SQL + Edge Functions.
+- `docs`: documentation technique et guides complementaires.
+
+## 10) Commandes utiles
 
 | Commande | Description |
-|----------|-------------|
-| `npm run dev` | Lance le serveur de développement |
-| `npm run build` | Compile l'application pour la production |
-| `npm run generate` | Génère une version statique du site |
-| `npm run preview` | Prévisualise le build de production |
+|---|---|
+| `npm run dev` | Demarrage en developpement |
+| `npm run build` | Build production |
+| `npm run preview` | Preview du build |
+| `npm run generate` | Generation statique |
 

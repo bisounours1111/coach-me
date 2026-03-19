@@ -364,7 +364,7 @@ const checkStripeStatus = async () => {
     );
     if (error) {
       stripeConnected.value = false;
-    } else if (data && (data.stripeConnectId || data.stripe_connect_id)) {
+    } else if (data && data.stripeActive) {
       stripeConnected.value = true;
     } else {
       stripeConnected.value = false;
@@ -380,7 +380,9 @@ const startStripeOnboarding = async () => {
   try {
     const { data, error } = await client.functions.invoke(
       "create_connect_account",
-      {},
+      {
+        body: { return_url: window.location.href }
+      },
     );
     if (error) throw error;
     if (data?.url) window.location.href = data.url;

@@ -32,21 +32,7 @@ Reference repository: [bisounours1111/coach-me](https://github.com/bisounours111
 
 ## 4) UML (modele de donnees simplifie)
 
-```mermaid
-erDiagram
-  profiles ||--o{ profile_game_roles : has
-  games ||--o{ profile_game_roles : classify
-  profile_game_roles ||--o{ coachings : offers
-  profiles ||--o{ sessions : "student_id"
-  coachings ||--o{ sessions : "coach_id"
-  sessions ||--o| reviews : receives
-  profiles ||--o{ coach_availabilities : owns
-  sessions }o--|| coach_availabilities : "slot_id"
-  profiles ||--o{ conversations : "student/coach"
-  conversations ||--o{ messages : contains
-  profiles ||--o| wallets : owns
-  wallets ||--o{ transactions : contains
-```
+- Voir dans /docs/diagramUML_CoachMe.pdf
 
 ## 5) Diagramme d'architecture applicative
 

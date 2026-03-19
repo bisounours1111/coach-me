@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getSupabaseAdmin } from "./_shared/supabase.ts";
 import { generateSessionActionToken } from "./_shared/session_token.ts";
 
+// PATCH_STATUS_EMAILS_MAP: upcoming->demande (coach liens), paid->confirmée (élève/coachs), canceled->annulation
 const TOKEN_EXPIRY_DAYS = 7;
 
 async function sha256Hex(input: string): Promise<string> {
@@ -359,28 +360,30 @@ serve(async (req: Request) => {
       html: string;
     }[] = [];
 
-    if (
-      new_status === "paid" ||
-      (new_status === "pending" && old_status !== "pending")
-    ) {
+    // NOTE: depuis la refonte #92, les statuts DB sont mappés différemment :
+    // - sessions.status = upcoming => créneau réservé, attente confirmation coach (demande + "coach va confirmer")
+    // - sessions.status = paid => créneau booké/confirmé (session confirmée)
+    if (new_status === "upcoming" || (new_status === "pending" && old_status !== "pending")) {
       if (studentEmail) {
         events.push({
-          event_type: "session_paid_student",
+          event_type: "session_upcoming_student",
           to_email: studentEmail,
           subject: "Réservation reçue – Coach-me",
           html: buildStudentPaidHtml(payload),
         });
       }
+
+      // Le coach reçoit les liens "Confirmer" / "Annuler" (session-action)
       if (coachEmail && confirmUrl && cancelUrl) {
         events.push({
-          event_type: "session_paid_coach",
+          event_type: "session_upcoming_coach",
           to_email: coachEmail,
           subject: "Nouvelle réservation – Coach-me",
           html: buildCoachPaidHtml(payload, confirmUrl, cancelUrl),
         });
       } else if (coachEmail) {
         events.push({
-          event_type: "session_paid_coach",
+          event_type: "session_upcoming_coach",
           to_email: coachEmail,
           subject: "Nouvelle réservation – Coach-me",
           html: buildCoachPaidHtml(
@@ -390,24 +393,26 @@ serve(async (req: Request) => {
           ),
         });
       }
-    } else if (new_status === "upcoming") {
+    } else if (new_status === "paid") {
       if (studentEmail) {
         events.push({
-          event_type: "session_upcoming_student",
+          event_type: "session_paid_student",
           to_email: studentEmail,
           subject: "Session confirmée par le coach – Coach-me",
           html: buildStudentUpcomingHtml(payload),
         });
       }
+
       if (coachEmail) {
         events.push({
-          event_type: "session_upcoming_coach",
+          event_type: "session_paid_coach",
           to_email: coachEmail,
           subject: "Session confirmée – Coach-me",
           html: buildCoachUpcomingHtml(payload),
         });
       }
     } else if (new_status === "canceled") {
+      // Selon le mapping #92, l'annulation par le coach peut arriver depuis old_status = upcoming (ou anciennement paid).
       const canceledByCoach = old_status === "paid";
       if (studentEmail) {
         events.push({

@@ -29,9 +29,9 @@ useHead({
           relative à vos données personnelles, vous pouvez nous contacter à
           l'adresse :
           <a
-            href="mailto:noreply@inventoryrp.space"
+            href="mailto:contact@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >noreply@inventoryrp.space</a
+            >contact@inventoryrp.space</a
           >.
         </p>
       </section>
@@ -160,9 +160,9 @@ useHead({
         <p>
           Pour exercer ces droits, contactez-nous à
           <a
-            href="mailto:noreply@inventoryrp.space"
+            href="mailto:contact@inventoryrp.space"
             class="text-teal-400 hover:underline"
-            >noreply@inventoryrp.space</a
+            >contact@inventoryrp.space</a
           >. Vous pouvez également introduire une réclamation auprès de la
           <a
             href="https://www.cnil.fr"

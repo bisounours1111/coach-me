@@ -125,7 +125,6 @@
       </div>
 
       <div class="grid gap-6">
-        {{ stripeConnected }}
         <div
           v-for="role in coachRoles"
           :key="role.gameId"
@@ -381,7 +380,7 @@ const startStripeOnboarding = async () => {
     const { data, error } = await client.functions.invoke(
       "create_connect_account",
       {
-        body: { return_url: window.location.href }
+        body: { return_url: window.location.href },
       },
     );
     if (error) throw error;
